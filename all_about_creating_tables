@@ -158,400 +158,518 @@ END OF SCRIPT
 
 
 
-############################################# Foundations for Keys and Constraints ############################################################################
+############################################# Foundations for Keys ############################################################################
 
-/* 
-================================================================================
-RDBMS PREREQUISITES (MySQL) — 10 Hands-on Exercises
-Focus: Basics, Data Types, NULL/NOT NULL, DEFAULT, PRIMARY KEY, UNIQUE, CHECK,
-       AUTO_INCREMENT, FOREIGN KEY (incl. CASCADE), and ALTER TABLE.
-Style:  WHY / WHAT / SCENARIO notes + solution + validation
-================================================================================
-*/
+-- Optional sandbox
+-- DROP DATABASE IF EXISTS demo_keys;
+-- CREATE DATABASE demo_keys; USE demo_keys;
 
--- -----------------------------------------------------------------------------
--- SECTION 0: Setup (idempotent)
--- -----------------------------------------------------------------------------
-DROP DATABASE IF EXISTS rdbms_prereq_demo;
-CREATE DATABASE rdbms_prereq_demo;
-USE rdbms_prereq_demo;
-
--- Clean slate if re-run individually
-DROP TABLE IF EXISTS order_items;
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS employees;
-DROP TABLE IF EXISTS users_nullable_demo;
-DROP TABLE IF EXISTS users_basic;
-DROP TABLE IF EXISTS countries;
+-- ============ A) PRIMARY KEY (PK) ============
+-- Why: Uniquely identify each row; needed for reliable lookups/relations.
+-- What: Column(s) that are unique + NOT NULL.
+-- Real-life: National ID → one person, one ID.
+DROP TABLE IF EXISTS students_pk;
+CREATE TABLE students_pk (
+  student_id INT PRIMARY KEY,
+  name VARCHAR(50)
+);
+-- student_id ensures unique student records.
 
 
-/* =============================================================================
-EXERCISE 1 — Create Database & First Table (no constraints)
-============================================================================= */
-/*
-WHY:
-- Start simple: get comfortable with CREATE DATABASE/TABLE, SHOW, DESCRIBE.
+-- ============ B) COMPOSITE PRIMARY KEY ============
+-- Why: Sometimes uniqueness needs multiple columns.
+-- What: Two+ columns together form the PK.
+-- Real-life: (FlightNumber + Date) = unique flight day.
+DROP TABLE IF EXISTS enrollments;
+CREATE TABLE enrollments (
+  student_id INT,
+  course_id  INT,
+  PRIMARY KEY (student_id, course_id)
+);
 
-WHAT:
-- Create a basic table 'users_basic' with a few columns, no constraints.
 
-SCENARIO:
-- Early prototyping when structure is not finalized.
-*/
+-- ============ C) FOREIGN KEY (FK) ============
+-- Why: Enforce parent→child relationships; no orphans.
+-- What: Column in child references parent’s PK.
+-- Real-life: borrowed_books.user_id must exist in users.user_id.
+DROP TABLE IF EXISTS users_fk;
+CREATE TABLE users_fk (
+  user_id INT PRIMARY KEY,
+  name    VARCHAR(50) NOT NULL
+);
 
--- SOLUTION
-CREATE TABLE users_basic (
-  id INT,
-  name VARCHAR(50),
-  email VARCHAR(100)
+DROP TABLE IF EXISTS orders_fk;
+CREATE TABLE orders_fk (
+  order_id INT PRIMARY KEY,
+  user_id  INT,
+  FOREIGN KEY (user_id) REFERENCES users_fk(user_id)
+);
+
+
+-- ============ D) UNIQUE KEY ============
+-- Why: Prevent duplicates in non-PK columns (NULLs allowed).
+-- What: Like PK rules but not “the” primary identifier.
+-- Real-life: One account per email.
+DROP TABLE IF EXISTS users_unique;
+CREATE TABLE users_unique (
+  user_id INT PRIMARY KEY,
+  email   VARCHAR(100) UNIQUE
+);
+
+
+-- ============ E) SURROGATE vs NATURAL KEYS ============
+-- Natural key: real-world identifier (email, ISBN).
+-- Surrogate key: artificial ID (AUTO_INCREMENT).
+DROP TABLE IF EXISTS students_keys;
+CREATE TABLE students_keys (
+    student_id   INT PRIMARY KEY AUTO_INCREMENT, -- Surrogate
+    national_id  CHAR(9) UNIQUE NOT NULL,        -- Natural
+    name         VARCHAR(100) NOT NULL,
+    date_of_birth DATE NOT NULL
+);
+
+DROP TABLE IF EXISTS books_keys;
+CREATE TABLE books_keys (
+    book_id        INT PRIMARY KEY AUTO_INCREMENT, -- Surrogate
+    isbn           CHAR(13) UNIQUE,                -- Natural
+    title          VARCHAR(200) NOT NULL,
+    author         VARCHAR(100) NOT NULL,
+    published_year INT
+);
+
+
+
+########################################### Foundation For Constraints ################################################
+
+/* ===========================================================
+   INTRO (WHAT / WHY / USE-CASE)
+   PRIMARY KEY
+     WHAT: Row’s unique, non-null identifier.
+     WHY: Stable identity for joins.
+     USE-CASE: user_id, task_id.
+
+   FOREIGN KEY
+     WHAT: Child column(s) must match parent key.
+     WHY: No orphan rows; consistent relationships.
+     USE-CASE: tasks.created_by → users.user_id
+     Actions:
+       - ON DELETE NO ACTION / RESTRICT: block delete if children exist.
+       - ON DELETE SET NULL: keep child, null out FK.
+       - ON UPDATE CASCADE: reflect parent key changes to children.
+
+   UNIQUE
+     WHAT: Values must be distinct (NULL allowed; multiple NULLs permitted).
+     WHY: Prevent duplicates of business identifiers.
+     USE-CASE: users.email, (tasks.title, created_by).
+
+   NOT NULL
+     WHAT: Disallow NULLs.
+     WHY: Ensure required data is present.
+     USE-CASE: name, title.
+
+   CHECK (MySQL 8.0.16+)
+     WHAT: Expression must be true.
+     WHY: Enforce business rules at DB level.
+     USE-CASE: LENGTH(title) > 0, estimated_hours > 0, email LIKE '%@%'.
+
+   DEFAULT
+     WHAT: Value auto-filled if not supplied.
+     WHY: Sensible fallbacks.
+     USE-CASE: timestamps, status.
+
+   AUTO_INCREMENT
+     WHAT: Auto-generated integers.
+     WHY: Simple surrogate keys.
+     USE-CASE: user_id, task_id.
+   =========================================================== */
+
+-- Clean slate and predictable behavior
+DROP DATABASE IF EXISTS demo_two_tables;
+CREATE DATABASE demo_two_tables;
+USE demo_two_tables;
+SET sql_mode = 'STRICT_ALL_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+
+-- STRICT_ALL_TABLES → Rejects invalid or out-of-range data instead of silently adjusting/truncating it.
+-- ERROR_FOR_DIVISION_BY_ZERO → Throws an error when dividing by zero instead of returning 0 or NULL.
+-- NO_ENGINE_SUBSTITUTION → Fails if a specified storage engine isn’t available instead of using a default.
+
+/* ===========================================================
+   TABLE 1: users
+   Shows: PK, UNIQUE, NOT NULL, CHECK, DEFAULT, AUTO_INCREMENT
+   =========================================================== */
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
+  user_id     INT NOT NULL AUTO_INCREMENT,
+  name        VARCHAR(100) NOT NULL,
+  email       VARCHAR(255) NOT NULL,
+  national_id VARCHAR(32) NULL,                     -- UNIQUE but nullable (multiple NULLs allowed)
+  status      ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT PK_users PRIMARY KEY (user_id),
+  CONSTRAINT UQ_users_email UNIQUE (email),
+  CONSTRAINT UQ_users_national UNIQUE (national_id),
+  CONSTRAINT CK_users_email CHECK (email LIKE '%@%') -- simple format guard
 ) ENGINE=InnoDB;
 
--- VALIDATION
-SHOW TABLES;
-DESCRIBE users_basic;
+-- GOOD INSERTS (users)
+INSERT INTO users (name, email, national_id) VALUES
+  ('Alice', 'alice@example.com', 'NAT-001'),
+  ('Bob',   'bob@example.com',    NULL),
+  ('Carol', 'carol@example.com', 'NAT-003');
 
-INSERT INTO users_basic (id, name, email) VALUES
-(1, 'Asha', 'asha@demo.com'),
-(1, 'Asha Duplicate', 'asha2@demo.com');  -- Allowed: no constraints yet
+-- QUICK VALIDATIONS (users)
+SELECT 'users rows' AS check_name, COUNT(*) AS rows FROM users;
+SELECT 'distinct emails' AS check_name, COUNT(DISTINCT email) AS distinct_emails FROM users;
 
-SELECT * FROM users_basic;
+-- VIOLATIONS (users) — run one at a time:
+-- 1) UNIQUE(email): duplicate -> should FAIL
+-- INSERT INTO users (name, email) VALUES ('Eve','alice@example.com');
+
+-- 2) CHECK(email): bad format -> should FAIL
+-- INSERT INTO users (name, email) VALUES ('Zed','not-an-email');
+
+-- 3) NOT NULL(name): missing required -> should FAIL
+-- INSERT INTO users (email) VALUES ('no-name@example.com');
+
+-- 4) UNIQUE(national_id): duplicate non-NULL -> should FAIL
+-- INSERT INTO users (name, email, national_id) VALUES ('DupNat','dup@example.com','NAT-001');
 
 
-/* =============================================================================
-EXERCISE 2 — Data Types & NULL behavior
-============================================================================= */
-/*
-WHY:
-- Understand that columns allow NULL by default unless restricted.
 
-WHAT:
-- Create 'users_nullable_demo' and insert NULL values to see behavior.
-
-SCENARIO:
-- When optional fields are common (e.g., middle_name).
-*/
-
--- SOLUTION
-CREATE TABLE users_nullable_demo (
-  user_id INT,
-  first_name VARCHAR(50),
-  last_name  VARCHAR(50),
-  phone VARCHAR(15) -- NULL allowed
+/* ===========================================================
+   TABLE 2: tasks
+   Shows: PK, FK (two styles), UNIQUE composite, NOT NULL, CHECK, DEFAULT
+         - created_by → users.user_id  (ON DELETE NO ACTION/RESTRICT, ON UPDATE CASCADE)
+         - assigned_to → users.user_id (ON DELETE SET NULL,         ON UPDATE CASCADE)
+   =========================================================== */
+DROP TABLE IF EXISTS tasks;
+CREATE TABLE tasks (
+  task_id         INT NOT NULL AUTO_INCREMENT,
+  title           VARCHAR(200) NOT NULL,
+  created_by      INT  NOT NULL,   -- FK to users (strict parent)
+  assigned_to     INT  NULL,       -- FK to users (optional parent)
+  status          ENUM('todo','doing','done') NOT NULL DEFAULT 'todo',
+  estimated_hours INT  NOT NULL DEFAULT 1,
+  created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  -- Keys/constraints
+  CONSTRAINT PK_tasks PRIMARY KEY (task_id),
+  CONSTRAINT UQ_tasks_title_creator UNIQUE (title, created_by),           -- composite UNIQUE
+  CONSTRAINT CK_tasks_title_nonempty CHECK (LENGTH(title) > 0),
+  CONSTRAINT CK_tasks_hours_pos      CHECK (estimated_hours > 0),
+  CONSTRAINT FK_tasks_created_by
+    FOREIGN KEY (created_by)
+    REFERENCES users(user_id)
+    ON DELETE NO ACTION              -- behaves like RESTRICT in MySQL
+    ON UPDATE CASCADE,
+  CONSTRAINT FK_tasks_assigned_to
+    FOREIGN KEY (assigned_to)
+    REFERENCES users(user_id)
+    ON DELETE SET NULL               -- keep task, null the assignee if user deleted
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
--- VALIDATION
-INSERT INTO users_nullable_demo (user_id, first_name, last_name, phone) VALUES
-(1, 'Rohit', 'Patil', NULL),
-(2, 'Neha',  NULL,    '99999'); -- last_name allowed NULL
+-- GOOD INSERTS (tasks)
+-- created_by must exist; assigned_to may be NULL or exist.
+INSERT INTO tasks (title, created_by, assigned_to, status, estimated_hours) VALUES
+  ('Prepare slides',   1, 3, 'todo', 3),  -- Alice creates, assigned to Carol
+  ('Set up projector', 1, 2, 'doing', 1), -- Alice creates, assigned to Bob
+  ('Collect feedback', 2, NULL, 'todo', 2); -- Bob creates, unassigned
 
-SELECT * FROM users_nullable_demo;
+-- QUICK VALIDATIONS (tasks)
+SELECT t.task_id, t.title, t.created_by, u1.name AS creator, t.assigned_to, u2.name AS assignee, t.status
+FROM tasks t
+JOIN users u1 ON u1.user_id = t.created_by
+LEFT JOIN users u2 ON u2.user_id = t.assigned_to
+ORDER BY t.task_id;
+
+-- FK ACTION DEMOS (good path):
+
+-- A) ON UPDATE CASCADE: change Bob’s user_id from 2 → 20; both created_by/assigned_to that reference Bob should follow.
+UPDATE users SET user_id = 20 WHERE name = 'Bob';
+SELECT 'after update cascade' AS note;
+SELECT t.task_id, t.title, t.created_by, t.assigned_to FROM tasks ORDER BY task_id;
+
+-- B) ON DELETE SET NULL: delete Carol; any task assigned_to = Carol becomes NULL, tasks remain.
+DELETE FROM users WHERE name = 'Carol';
+SELECT 'after delete set null' AS note;
+SELECT t.task_id, t.title, t.created_by, t.assigned_to FROM tasks ORDER BY task_id;
+
+-- C) ON DELETE NO ACTION/RESTRICT: try to delete Alice (creator of tasks). This should FAIL.
+-- DELETE FROM users WHERE name = 'Alice';  -- <-- VIOLATION (uncomment to see error)
 
 
-/* =============================================================================
-EXERCISE 3 — NOT NULL & DEFAULT
-============================================================================= */
-/*
-WHY:
-- Enforce required fields (NOT NULL) and sensible defaults (DEFAULT).
+-- VIOLATIONS (tasks) — run one at a time:
 
-WHAT:
-- Create 'employees' with NOT NULL for name and DEFAULT for status & created_on.
+-- 1) FK: created_by must exist -> should FAIL (no user_id = 9999)
+-- INSERT INTO tasks (title, created_by, assigned_to, status, estimated_hours)
+-- VALUES ('Ghost task', 9999, NULL, 'todo', 1);
 
-SCENARIO:
-- Ensure critical attributes are always present; auto-fill common values.
-*/
+-- 2) FK: assigned_to must exist if not NULL -> should FAIL (no user_id = 8888)
+-- INSERT INTO tasks (title, created_by, assigned_to, status, estimated_hours)
+-- VALUES ('Wrong assignee', 1, 8888, 'todo', 1);
 
--- SOLUTION
-CREATE TABLE employees (
-  emp_id INT, -- key will be added later
-  full_name VARCHAR(100) NOT NULL,
-  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-  created_on DATE DEFAULT (CURRENT_DATE)
+-- 3) UNIQUE composite (title, created_by): duplicate pair -> should FAIL
+-- INSERT INTO tasks (title, created_by, assigned_to, status, estimated_hours)
+-- VALUES ('Prepare slides', 1, NULL, 'todo', 2);
+
+-- 4) CHECK(title): empty string not allowed -> should FAIL
+-- INSERT INTO tasks (title, created_by, status, estimated_hours)
+-- VALUES ('', 1, 'todo', 1);
+
+-- 5) CHECK(estimated_hours > 0): zero/negative -> should FAIL
+-- INSERT INTO tasks (title, created_by, status, estimated_hours)
+-- VALUES ('Bad effort', 1, 'todo', 0);
+
+-- 6) ENUM(status): invalid value (STRICT mode) -> should FAIL
+-- INSERT INTO tasks (title, created_by, status, estimated_hours)
+-- VALUES ('Bad status', 1, 'blocked', 1);
+
+-- 7) NOT NULL(created_by): omitted -> should FAIL
+-- INSERT INTO tasks (title, status, estimated_hours)
+-- VALUES ('No creator', 'todo', 1);
+
+
+-- EXTRA sanity checks after demos
+SELECT 'final users' AS note;  SELECT user_id, name, email FROM users ORDER BY user_id;
+SELECT 'final tasks' AS note;  SELECT task_id, title, created_by, assigned_to, status FROM tasks ORDER BY task_id;
+
+
+
+
+
+############################################################### ADD / DROP / ALTER Constraints #########################################
+
+
+/* ----------------------------------------------------------
+   SETUP: create the two tables exactly as you shared
+-----------------------------------------------------------*/
+DROP TABLE IF EXISTS tasks;
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users (
+  user_id     INT NOT NULL AUTO_INCREMENT,
+  name        VARCHAR(100) NOT NULL,
+  email       VARCHAR(255) NOT NULL,
+  national_id VARCHAR(32) NULL,                     -- UNIQUE but nullable (multiple NULLs allowed)
+  status      ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT PK_users PRIMARY KEY (user_id),
+  CONSTRAINT UQ_users_email UNIQUE (email),
+  CONSTRAINT UQ_users_national UNIQUE (national_id),
+  CONSTRAINT CK_users_email CHECK (email LIKE '%@%') -- simple format guard
 ) ENGINE=InnoDB;
 
--- VALIDATION
-INSERT INTO employees (emp_id, full_name) VALUES (1, 'Sanjana');  -- uses defaults
-INSERT INTO employees (emp_id, full_name, status) VALUES (2, 'Kamal', 'INACTIVE');
+CREATE TABLE tasks (
+  task_id         INT NOT NULL AUTO_INCREMENT,
+  title           VARCHAR(200) NOT NULL,
+  created_by      INT  NOT NULL,   -- FK to users (strict parent)
+  assigned_to     INT  NULL,       -- FK to users (optional parent)
+  status          ENUM('todo','doing','done') NOT NULL DEFAULT 'todo',
+  estimated_hours INT  NOT NULL DEFAULT 1,
+  created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
--- EXPECTED TO FAIL (NOT NULL): Uncomment to test
--- INSERT INTO employees (emp_id, full_name) VALUES (3, NULL);
+  CONSTRAINT PK_tasks PRIMARY KEY (task_id),
+  CONSTRAINT UQ_tasks_title_creator UNIQUE (title, created_by),           -- composite UNIQUE
+  CONSTRAINT CK_tasks_title_nonempty CHECK (LENGTH(title) > 0),
+  CONSTRAINT CK_tasks_hours_pos      CHECK (estimated_hours > 0),
 
-SELECT * FROM employees;
+  CONSTRAINT FK_tasks_created_by
+    FOREIGN KEY (created_by)
+    REFERENCES users(user_id)
+    ON DELETE NO ACTION              -- behaves like RESTRICT in MySQL
+    ON UPDATE CASCADE,
 
-
-/* =============================================================================
-EXERCISE 4 — PRIMARY KEY (single) + AUTO_INCREMENT
-============================================================================= */
-/*
-WHY:
-- PRIMARY KEY uniquely identifies each row; AUTO_INCREMENT generates IDs.
-
-WHAT:
-- Add 'id' as PRIMARY KEY with AUTO_INCREMENT to 'employees' via ALTER TABLE.
-
-SCENARIO:
-- Standard identity column for many OLTP tables.
-*/
-
--- SOLUTION
-ALTER TABLE employees
-  ADD COLUMN id INT NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;
-
--- VALIDATION: ID auto-generated
-INSERT INTO employees (full_name, status) VALUES ('Meena', 'ACTIVE');
-INSERT INTO employees (full_name) VALUES ('Vikas');
-
--- EXPECTED TO FAIL (duplicate PK): Uncomment to test
--- INSERT INTO employees (id, full_name) VALUES (1, 'Duplicate ID');
-
-SELECT id, emp_id, full_name, status, created_on FROM employees ORDER BY id;
-
-
-/* =============================================================================
-EXERCISE 5 — UNIQUE Constraint
-============================================================================= */
-/*
-WHY:
-- Prevent duplicate values in a column (e.g., emails, usernames).
-
-WHAT:
-- Add unique email to 'employees' and populate data.
-
-SCENARIO:
-- Ensure one login/email per user.
-*/
-
--- SOLUTION (add column + unique)
-ALTER TABLE employees
-  ADD COLUMN email VARCHAR(100);
-
-ALTER TABLE employees
-  ADD CONSTRAINT uq_employees_email UNIQUE (email);
-
--- VALIDATION
-UPDATE employees SET email = 'sanjana@company.com' WHERE full_name = 'Sanjana';
-UPDATE employees SET email = 'kamal@company.com'   WHERE full_name = 'Kamal';
-INSERT INTO employees (full_name, email) VALUES ('Vikas 2', 'vikas@company.com');
-
--- EXPECTED TO FAIL (duplicate email): Uncomment to test
--- INSERT INTO employees (full_name, email) VALUES ('Another', 'kamal@company.com');
-
-SELECT id, full_name, email FROM employees ORDER BY id;
-
-
-/* =============================================================================
-EXERCISE 6 — CHECK Constraint (data quality rule)
-============================================================================= */
-/*
-WHY:
-- CHECK enforces a rule at the database level (e.g., numeric ranges).
-
-WHAT:
-- Add CHECK to ensure status in ('ACTIVE','INACTIVE') and emp_id >= 0.
-
-SCENARIO:
-- Keep invalid domain values out (e.g., negative stock, bad statuses).
-
-NOTE:
-- Enforced from MySQL 8.0.16+. Earlier versions ignore CHECK silently.
-*/
-
--- SOLUTION
-ALTER TABLE employees
-  ADD CONSTRAINT chk_employees_status CHECK (status IN ('ACTIVE','INACTIVE')),
-  ADD CONSTRAINT chk_employees_empid  CHECK (emp_id IS NULL OR emp_id >= 0);
-
--- VALIDATION (will pass)
-INSERT INTO employees (full_name, status, email, emp_id)
-VALUES ('Ritu', 'ACTIVE', 'ritu@company.com', 0);
-
--- EXPECTED TO FAIL (bad status): Uncomment to test
--- INSERT INTO employees (full_name, status, email) VALUES ('Bad', 'UNKNOWN', 'bad@company.com');
-
-SELECT id, full_name, status, emp_id FROM employees ORDER BY id;
-
-
-/* =============================================================================
-EXERCISE 7 — PRIMARY KEY (composite) concept
-============================================================================= */
-/*
-WHY:
-- Sometimes one column isn't enough; use a combination to guarantee uniqueness.
-
-WHAT:
-- Create 'products' with a natural key (sku) + a surrogate key (product_id),
-  then demonstrate composite uniqueness via UNIQUE index.
-
-SCENARIO:
-- Stock-keeping: sku unique per brand or category; show composite uniqueness.
-
-NOTE:
-- We'll show both: PRIMARY KEY (product_id) + a composite UNIQUE over (brand, sku).
-*/
-
--- SOLUTION
-CREATE TABLE products (
-  product_id INT PRIMARY KEY AUTO_INCREMENT,
-  brand VARCHAR(50) NOT NULL,
-  sku   VARCHAR(50) NOT NULL,
-  name  VARCHAR(100) NOT NULL,
-  price DECIMAL(10,2) NOT NULL CHECK (price >= 0)
+  CONSTRAINT FK_tasks_assigned_to
+    FOREIGN KEY (assigned_to)
+    REFERENCES users(user_id)
+    ON DELETE SET NULL               -- keep task, null the assignee if user deleted
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
--- composite uniqueness: each brand cannot reuse the same sku
-CREATE UNIQUE INDEX uq_products_brand_sku ON products (brand, sku);
-
--- VALIDATION
-INSERT INTO products (brand, sku, name, price) VALUES
-('Acme', 'SKU-101', 'Acme Hammer', 299.00),
-('Acme', 'SKU-102', 'Acme Nails Box', 149.00),
-('Bravo','SKU-101', 'Bravo Hammer', 279.00); -- allowed: different brand, same sku
-
--- EXPECTED TO FAIL (duplicate within same brand): Uncomment
--- INSERT INTO products (brand, sku, name, price) VALUES ('Acme', 'SKU-101', 'Dup', 10.00);
-
-SELECT product_id, brand, sku, name, price FROM products;
+/* (Optional) seed a little data so FK demos make sense */
+INSERT INTO users (name, email, national_id) VALUES
+  ('Alice', 'alice@example.com', 'NAT-001'),
+  ('Bob',   'bob@example.com',    NULL);
+INSERT INTO tasks (title, created_by, assigned_to) VALUES
+  ('Prepare slides', 1, 2),
+  ('Collect feedback', 2, NULL);
 
 
-/* =============================================================================
-EXERCISE 8 — FOREIGN KEY (single-column) with RESTRICT
-============================================================================= */
-/*
-WHY:
-- FOREIGN KEY ensures child rows reference existing parent rows (no orphans).
+/* ==========================================================
+   1) PRIMARY KEY (PK)
+   - Drop PK
+   - Re-add PK (same column)
+   - (Example) Make a COMPOSITE PK (drop old PK first)
+   (Note: PK name is informational; you change by drop+add)
+========================================================== */
 
-WHAT:
-- Create 'orders' referencing employees(id) who created the order.
+-- Drop PK on users
+ALTER TABLE users DROP PRIMARY KEY;
 
-SCENARIO:
-- Only existing employees can create orders; prevents invalid references.
+-- Re-add PK on users(user_id)
+ALTER TABLE users
+  ADD CONSTRAINT PK_users PRIMARY KEY (user_id);
 
-GOTCHA:
-- Default ON DELETE/UPDATE is RESTRICT (reject operation if it breaks integrity).
-*/
+-- Change PK on tasks to a composite (task_id, created_by) [DEMO],
+-- then revert back to original single-column PK.
+ALTER TABLE tasks DROP PRIMARY KEY;
+ALTER TABLE tasks
+  ADD CONSTRAINT PK_tasks PRIMARY KEY (task_id, created_by);
 
--- SOLUTION
-CREATE TABLE orders (
-  order_id INT PRIMARY KEY AUTO_INCREMENT,
-  created_by INT NOT NULL,
-  order_date DATE NOT NULL DEFAULT (CURRENT_DATE),
-  CONSTRAINT fk_orders_employee
-    FOREIGN KEY (created_by) REFERENCES employees(id)
-    ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
--- VALIDATION
-INSERT INTO orders (created_by) VALUES
-((SELECT id FROM employees WHERE full_name='Sanjana')),
-((SELECT id FROM employees WHERE full_name='Kamal'));
-
--- EXPECTED TO FAIL (no such employee): Uncomment
--- INSERT INTO orders (created_by) VALUES (99999);
-
-SELECT order_id, created_by, order_date FROM orders;
+-- Revert: back to single-column PK on task_id
+ALTER TABLE tasks DROP PRIMARY KEY;
+ALTER TABLE tasks
+  ADD CONSTRAINT PK_tasks PRIMARY KEY (task_id);
 
 
-/* =============================================================================
-EXERCISE 9 — FOREIGN KEY with ON DELETE CASCADE
-============================================================================= */
-/*
-WHY:
-- CASCADE automatically removes child rows when parent is deleted.
+/* ==========================================================
+   2) UNIQUE
+   - Add UNIQUE (single & composite)
+   - Drop UNIQUE (DROP INDEX <name>)
+   - Rename UNIQUE (RENAME INDEX)
+========================================================== */
 
-WHAT:
-- Create 'order_items' referencing orders(order_id) with ON DELETE CASCADE.
+-- Add a composite UNIQUE on users(name, email) just for demo
+ALTER TABLE users
+  ADD CONSTRAINT UQ_users_name_email UNIQUE (name, email);
 
-SCENARIO:
-- If an order is cancelled and deleted, its line items should also go away.
+-- Drop that composite UNIQUE
+ALTER TABLE users
+  DROP INDEX UQ_users_name_email;
 
-GOTCHA:
-- Use CASCADE thoughtfully; sometimes business rules require RESTRICT/SET NULL.
-*/
+-- Rename existing UNIQUE (email) to a clearer name
+ALTER TABLE users
+  RENAME INDEX UQ_users_email TO UQ_users_email_unique;
 
--- SOLUTION
-CREATE TABLE order_items (
-  order_item_id INT PRIMARY KEY AUTO_INCREMENT,
-  order_id INT NOT NULL,
-  product_id INT NOT NULL,
-  quantity INT NOT NULL CHECK (quantity > 0),
-  CONSTRAINT fk_items_order
-    FOREIGN KEY (order_id) REFERENCES orders(order_id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT fk_items_product
-    FOREIGN KEY (product_id) REFERENCES products(product_id)
-    ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB;
+-- Add UNIQUE on tasks(title) alone (note: existing composite still exists)
+ALTER TABLE tasks
+  ADD CONSTRAINT UQ_tasks_title UNIQUE (title);
 
--- VALIDATION DATA
-INSERT INTO order_items (order_id, product_id, quantity)
-SELECT o.order_id, p.product_id, 2
-FROM orders o
-JOIN products p ON p.sku='SKU-101' AND p.brand='Acme'
-LIMIT 1;
-
-SELECT * FROM order_items;
-
--- Test CASCADE: delete one order and check its items disappear
--- (Uncomment to see effect)
--- DELETE FROM orders WHERE order_id = (SELECT MIN(order_id) FROM orders);
--- SELECT * FROM order_items;
+-- Drop that single-column UNIQUE
+ALTER TABLE tasks
+  DROP INDEX UQ_tasks_title;
 
 
-/* =============================================================================
-EXERCISE 10 — ALTER TABLE: add/drop constraints, rename/modify column
-============================================================================= */
-/*
-WHY:
-- Schemas evolve. ALTER TABLE lets you change constraints/columns safely.
+/* ==========================================================
+   3) CHECK
+   - Drop CHECK
+   - Add tighter CHECK
+   - Modify CHECK (drop + add)
+   (MySQL 8.0.16+ enforces CHECK)
+========================================================== */
 
-WHAT:
-- Add a CHECK to products for max price, then drop it.
-- Rename a column, modify a datatype, and show DDL.
+-- Drop email CHECK
+ALTER TABLE users
+  DROP CHECK CK_users_email;
 
-SCENARIO:
-- New business rule limits price; later rule is relaxed; rename for clarity.
+-- Add a stricter email CHECK (very basic still)
+ALTER TABLE users
+  ADD CONSTRAINT CK_users_email_basic CHECK (email LIKE '%@%.%');
 
-NOTE:
-- Constraint names are required to drop them cleanly.
-*/
+-- Modify CHECK on tasks hours: ensure 1 <= estimated_hours <= 100
+ALTER TABLE tasks
+  DROP CHECK CK_tasks_hours_pos;
 
--- SOLUTION
-ALTER TABLE products
-  ADD CONSTRAINT chk_products_price_cap CHECK (price <= 100000.00);
+ALTER TABLE tasks
+  ADD CONSTRAINT CK_tasks_hours_range CHECK (estimated_hours BETWEEN 1 AND 100);
 
--- EXPECTED TO FAIL (price too high): Uncomment
--- INSERT INTO products (brand, sku, name, price)
--- VALUES ('Acme', 'SKU-999', 'Gold-Plated Hammer', 100001.00);
 
--- Drop the CHECK (rule relaxed)
-ALTER TABLE products
-  DROP CHECK chk_products_price_cap;
+/* ==========================================================
+   4) NOT NULL
+   - Make a column NOT NULL / NULL (via MODIFY)
+========================================================== */
 
--- Rename column 'name' -> 'product_name'
-ALTER TABLE products
-  CHANGE COLUMN name product_name VARCHAR(100) NOT NULL;
+-- Allow NULLs in users.name (for demo), then revert to NOT NULL
+ALTER TABLE users
+  MODIFY name VARCHAR(100) NULL;
 
--- Modify datatype (e.g., increase precision)
-ALTER TABLE products
-  MODIFY COLUMN price DECIMAL(12,2) NOT NULL;
+ALTER TABLE users
+  MODIFY name VARCHAR(100) NOT NULL;
 
--- VALIDATION
-DESCRIBE products;
-SHOW CREATE TABLE products\G
 
-/* -----------------------------------------------------------------------------
-MINI-RECAP (teacher notes)
------------------------------------------------------------------------------
-- NULL vs NOT NULL: control missing data.
-- DEFAULT: auto-fill common values.
-- PRIMARY KEY: unique identity (often AUTO_INCREMENT).
-- UNIQUE: column-level uniqueness (e.g., email).
-- CHECK: enforce domain rules (ranges, allowed values).
-- FOREIGN KEY: parent-child integrity (RESTRICT vs CASCADE).
-- Composite uniqueness: multi-column uniqueness via UNIQUE index.
-- ALTER TABLE: evolve schema (add/drop constraints, rename, modify).
------------------------------------------------------------------------------ */
+/* ==========================================================
+   5) DEFAULT
+   - Set or drop DEFAULT (ALTER COLUMN ... SET/DROP DEFAULT)
+   - Or change DEFAULT via MODIFY
+========================================================== */
+
+-- Change default of users.status to 'inactive'
+ALTER TABLE users
+  ALTER COLUMN status SET DEFAULT 'inactive';
+
+-- Drop default on users.status
+ALTER TABLE users
+  ALTER COLUMN status DROP DEFAULT;
+
+-- Re-establish via MODIFY (also good to demonstrate enum change if needed)
+ALTER TABLE users
+  MODIFY status ENUM('active','inactive') NOT NULL DEFAULT 'active';
+
+-- Change default of tasks.estimated_hours to 2
+ALTER TABLE tasks
+  ALTER COLUMN estimated_hours SET DEFAULT 2;
+
+
+/* ==========================================================
+   6) FOREIGN KEY (FK)
+   - Drop FK
+   - Re-add FK with different ON DELETE/ON UPDATE actions
+   - Rename FK: drop + add with new name
+   (To change actions, always drop + add)
+========================================================== */
+
+-- A) Change tasks.assigned_to FK from SET NULL -> RESTRICT
+ALTER TABLE tasks
+  DROP FOREIGN KEY FK_tasks_assigned_to;
+
+ALTER TABLE tasks
+  ADD CONSTRAINT FK_tasks_assigned_to
+  FOREIGN KEY (assigned_to)
+  REFERENCES users(user_id)
+  ON DELETE RESTRICT
+  ON UPDATE CASCADE;
+
+-- B) Change tasks.created_by FK from NO ACTION -> CASCADE (delete creator deletes tasks)
+ALTER TABLE tasks
+  DROP FOREIGN KEY FK_tasks_created_by;
+
+ALTER TABLE tasks
+  ADD CONSTRAINT FK_tasks_created_by
+  FOREIGN KEY (created_by)
+  REFERENCES users(user_id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+-- C) Rename FK by drop+add with a new name (example: to FK_tasks_creator_strict)
+ALTER TABLE tasks
+  DROP FOREIGN KEY FK_tasks_created_by;
+
+ALTER TABLE tasks
+  ADD CONSTRAINT FK_tasks_creator_strict
+  FOREIGN KEY (created_by)
+  REFERENCES users(user_id)
+  ON DELETE NO ACTION
+  ON UPDATE CASCADE;
+
+
+/* ==========================================================
+   7) MISC (useful related operations)
+   - AUTO_INCREMENT reseed
+   - RENAME INDEX (unique or normal)
+   - Show constraints quickly
+========================================================== */
+
+-- Bump AUTO_INCREMENT start on tasks
+ALTER TABLE tasks AUTO_INCREMENT = 1000;
+
+-- Rename the national_id UNIQUE to a clearer name
+ALTER TABLE users
+  RENAME INDEX UQ_users_national TO UQ_users_national_id;
+
+-- Peek at structure (uncomment in MySQL client)
+-- SHOW CREATE TABLE users\G
+-- SHOW CREATE TABLE tasks\G
+
 
 
 ####################################################################### Step Up : Keys/ Constraints ##########################################################
