@@ -157,7 +157,6 @@ END OF SCRIPT
 
 
 
-
 ############################################# Foundations for Keys ############################################################################
 
 -- Optional sandbox
@@ -298,7 +297,28 @@ SET sql_mode = 'STRICT_ALL_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUT
    Shows: PK, UNIQUE, NOT NULL, CHECK, DEFAULT, AUTO_INCREMENT
    =========================================================== */
 DROP TABLE IF EXISTS users;
-CREATE TABLE users (
+
+-- way 1 : without naming constraints 
+
+CREATE TABLE users01 (
+  user_id     INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL,
+  email       VARCHAR(255) NOT NULL UNIQUE,
+  national_id VARCHAR(32) NULL UNIQUE,              -- multiple NULLs allowed
+  status      ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK (email LIKE '%@%')  -- simple format guard
+) ENGINE=InnoDB;
+
+-- Get names of constraints
+SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE
+FROM information_schema.TABLE_CONSTRAINTS
+WHERE TABLE_SCHEMA = 'demo_two_tables'
+  AND TABLE_NAME = 'users01';
+
+
+-- way 2 : naming the constraints
+CREATE TABLE users02 (
   user_id     INT NOT NULL AUTO_INCREMENT,
   name        VARCHAR(100) NOT NULL,
   email       VARCHAR(255) NOT NULL,
@@ -669,6 +689,305 @@ ALTER TABLE users
 -- Peek at structure (uncomment in MySQL client)
 -- SHOW CREATE TABLE users\G
 -- SHOW CREATE TABLE tasks\G
+
+############################################################### Foreign Key Options ###########################################
+
+
+/* =============================================================================
+FOREIGN KEY ACTIONS — Hands-on Script (MySQL 8.0+, InnoDB)
+Author: <Your Name>
+Goal: Demonstrate RESTRICT, NO ACTION, CASCADE, SET NULL (and SET DEFAULT note)
+How to use:
+  1) Run section by section.
+  2) Read the comments (WHY/WHAT/EXPECT).
+  3) Uncomment the "EXPECTED TO FAIL" statements to observe real errors.
+============================================================================= */
+
+-- Clean, idempotent playground
+DROP DATABASE IF EXISTS fk_actions_demo;
+CREATE DATABASE fk_actions_demo;
+USE fk_actions_demo;
+
+SET @@foreign_key_checks = 1;
+
+/* =============================================================================
+SECTION A — RESTRICT
+WHY:
+  - Protect child rows: if children exist, you cannot delete or change the parent key.
+WHAT:
+  - Parent: teachers; Child: classes(teacher_id) with ON DELETE/UPDATE RESTRICT
+EXPECT:
+  - Deleting a teacher who has classes -> ERROR.
+  - Updating teacher_id (rare practice) -> ERROR if referenced.
+============================================================================= */
+
+DROP TABLE IF EXISTS classes_restrict;
+DROP TABLE IF EXISTS teachers_restrict;
+
+CREATE TABLE teachers_restrict (
+  teacher_id INT PRIMARY KEY,
+  name       VARCHAR(50) NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE classes_restrict (
+  class_id   INT PRIMARY KEY,
+  teacher_id INT,
+  CONSTRAINT fk_classes_teacher_restrict
+    FOREIGN KEY (teacher_id)
+    REFERENCES teachers_restrict(teacher_id)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT
+) ENGINE=InnoDB;
+
+-- Seed
+INSERT INTO teachers_restrict VALUES (1, 'Asha'), (2, 'Rahul');
+INSERT INTO classes_restrict VALUES (100, 1), (101, 1), (200, 2);
+
+-- Works: Delete a teacher who has NO classes
+DELETE FROM classes_restrict WHERE class_id = 200;   -- remove class for teacher 2
+DELETE FROM teachers_restrict WHERE teacher_id = 2;  -- OK (no dependent classes)
+
+-- EXPECTED TO FAIL: Cannot delete teacher_id=1 (still referenced by class 100,101)
+-- DELETE FROM teachers_restrict WHERE teacher_id = 1;
+
+-- EXPECTED TO FAIL: Cannot UPDATE teacher_id=1 to 10 (child rows exist)
+-- UPDATE teachers_restrict SET teacher_id = 10 WHERE teacher_id = 1;
+
+-- Works: First remove child rows, then delete parent
+DELETE FROM classes_restrict WHERE teacher_id = 1;
+DELETE FROM teachers_restrict WHERE teacher_id = 1;
+
+
+/* =============================================================================
+SECTION B — NO ACTION (InnoDB treats as RESTRICT)
+WHY:
+  - In MySQL InnoDB, NO ACTION == RESTRICT (immediate check).
+WHAT:
+  - Parent: flights; Child: tickets(flight_id) with NO ACTION
+EXPECT:
+  - Behavior identical to RESTRICT in Section A.
+============================================================================= */
+
+DROP TABLE IF EXISTS tickets_noaction;
+DROP TABLE IF EXISTS flights_noaction;
+
+CREATE TABLE flights_noaction (
+  flight_id INT PRIMARY KEY,
+  route     VARCHAR(50)
+) ENGINE=InnoDB;
+
+CREATE TABLE tickets_noaction (
+  ticket_id INT PRIMARY KEY,
+  flight_id INT,
+  CONSTRAINT fk_tickets_flight_noaction
+    FOREIGN KEY (flight_id)
+    REFERENCES flights_noaction(flight_id)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+) ENGINE=InnoDB;
+
+-- Seed
+INSERT INTO flights_noaction VALUES (101, 'PUNE-DEL'), (102, 'DEL-PUNE');
+INSERT INTO tickets_noaction VALUES (1, 101), (2, 101), (3, 102);
+
+-- EXPECTED TO FAIL: Cannot delete flight 101 (tickets exist)
+-- DELETE FROM flights_noaction WHERE flight_id = 101;
+
+-- Works: Remove child rows, then delete parent
+DELETE FROM tickets_noaction WHERE flight_id = 101;
+DELETE FROM flights_noaction WHERE flight_id = 101;
+
+-- EXPECTED TO FAIL: Cannot UPDATE flight_id=102 while tickets exist
+-- UPDATE flights_noaction SET flight_id = 999 WHERE flight_id = 102;
+
+-- Works: Remove child, then update parent key (not common in practice)
+DELETE FROM tickets_noaction WHERE flight_id = 102;
+UPDATE flights_noaction SET flight_id = 999 WHERE flight_id = 102;
+
+
+/* =============================================================================
+SECTION C — CASCADE
+WHY:
+  - Dependent data should follow parent changes:
+    - ON DELETE CASCADE: deleting parent deletes children automatically.
+    - ON UPDATE CASCADE: changing parent key updates child key.
+WHAT:
+  - Parent: orders; Child: order_items(order_id) with CASCADE
+EXPECT:
+  - Delete an order -> its items auto-delete.
+  - Update order_id -> child FKs auto-update (shown for teaching; rare in prod).
+============================================================================= */
+
+DROP TABLE IF EXISTS order_items_cascade;
+DROP TABLE IF EXISTS orders_cascade;
+
+CREATE TABLE orders_cascade (
+  order_id INT PRIMARY KEY,
+  note     VARCHAR(100)
+) ENGINE=InnoDB;
+
+CREATE TABLE order_items_cascade (
+  item_id  INT PRIMARY KEY,
+  order_id INT,
+  product  VARCHAR(50),
+  qty      INT NOT NULL CHECK (qty > 0),
+  CONSTRAINT fk_items_order_cascade
+    FOREIGN KEY (order_id)
+    REFERENCES orders_cascade(order_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- Seed
+INSERT INTO orders_cascade VALUES (500, 'First order'), (600, 'Second order');
+INSERT INTO order_items_cascade VALUES
+  (1, 500, 'Phone', 1),
+  (2, 500, 'Case',  2),
+  (3, 600, 'Laptop',1);
+
+-- Check child rows exist
+SELECT * FROM order_items_cascade WHERE order_id = 500;
+
+-- ON UPDATE CASCADE demonstration (rare but illustrative)
+UPDATE orders_cascade SET order_id = 550 WHERE order_id = 500;
+-- Order items should now reference 550, not 500
+SELECT * FROM order_items_cascade WHERE order_id IN (500, 550);
+
+-- ON DELETE CASCADE demonstration
+DELETE FROM orders_cascade WHERE order_id = 550; -- deletes items (1,2) automatically
+SELECT * FROM order_items_cascade;               -- item 3 remains (order 600)
+
+/* =============================================================================
+SECTION D — SET NULL
+WHY:
+  - Child records can outlive parent; we simply "detach" them by setting FK to NULL.
+WHAT:
+  - Parent: managers; Child: employees(manager_id) with ON DELETE SET NULL
+EXPECT:
+  - Delete a manager -> employees.manager_id becomes NULL (column must allow NULL).
+============================================================================= */
+
+DROP TABLE IF EXISTS employees_setnull;
+DROP TABLE IF EXISTS managers_setnull;
+
+CREATE TABLE managers_setnull (
+  manager_id INT PRIMARY KEY,
+  name       VARCHAR(50) NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE employees_setnull (
+  emp_id     INT PRIMARY KEY,
+  emp_name   VARCHAR(50) NOT NULL,
+  manager_id INT NULL,
+  CONSTRAINT fk_emp_mgr_setnull
+    FOREIGN KEY (manager_id)
+    REFERENCES managers_setnull(manager_id)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- Seed
+INSERT INTO managers_setnull VALUES (10, 'Meera'), (20, 'Kamal');
+INSERT INTO employees_setnull VALUES
+  (1001, 'Asha', 10),
+  (1002, 'Rohit',10),
+  (1003, 'Neha', 20),
+  (1004, 'Vik',  NULL);
+
+-- Delete manager 10 -> employees 1001/1002 will have manager_id = NULL
+DELETE FROM managers_setnull WHERE manager_id = 10;
+SELECT * FROM employees_setnull ORDER BY emp_id;
+
+--  EXPECTED TO FAIL: If manager_id were NOT NULL, SET NULL would fail
+-- (To test, recreate employees_setnull with manager_id NOT NULL and try again)
+
+/* =============================================================================
+SECTION E — SET DEFAULT (Not supported in MySQL)
+WHY:
+  - Some DBs let you set child FK to its DEFAULT on parent delete (e.g., PostgreSQL).
+  - MySQL DOES NOT support ON DELETE/UPDATE SET DEFAULT. Use triggers or app logic.
+WHAT:
+  - Show the error you’d get, then demonstrate a trigger-based workaround.
+============================================================================= */
+
+-- Attempting SET DEFAULT -> syntax error in MySQL (uncomment to see)
+-- CREATE TABLE parent_default (
+--   id INT PRIMARY KEY
+-- ) ENGINE=InnoDB;
+-- CREATE TABLE child_default (
+--   id INT PRIMARY KEY,
+--   parent_id INT DEFAULT 1,
+--   CONSTRAINT fk_child_parent_default
+--     FOREIGN KEY (parent_id)
+--     REFERENCES parent_default(id)
+--     ON DELETE SET DEFAULT  --  MySQL: not supported
+-- ) ENGINE=InnoDB;
+
+-- Workaround demo: emulate SET DEFAULT with a trigger
+DROP TABLE IF EXISTS child_default_trg;
+DROP TABLE IF EXISTS parent_default_trg;
+
+CREATE TABLE parent_default_trg (
+  id INT PRIMARY KEY
+) ENGINE=InnoDB;
+
+CREATE TABLE child_default_trg (
+  id INT PRIMARY KEY,
+  parent_id INT NOT NULL DEFAULT 1,
+  -- Note: We keep a normal FK (RESTRICT) and handle defaulting via trigger on delete
+  CONSTRAINT fk_child_parent_trg
+    FOREIGN KEY (parent_id)
+    REFERENCES parent_default_trg(id)
+    ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB;
+
+-- Seed parents (ensure DEFAULT target row exists)
+INSERT INTO parent_default_trg VALUES (1), (2), (3);
+
+-- Seed children
+INSERT INTO child_default_trg VALUES (101, 2), (102, 3), (103, 1);
+
+-- Create trigger to emulate "SET DEFAULT to 1" when deleting parent
+DROP TRIGGER IF EXISTS trg_parent_delete_set_default;
+DELIMITER $$
+CREATE TRIGGER trg_parent_delete_set_default
+BEFORE DELETE ON parent_default_trg
+FOR EACH ROW
+BEGIN
+  -- Emulate: any child referencing OLD.id will be set to DEFAULT (1)
+  UPDATE child_default_trg
+     SET parent_id = 1
+   WHERE parent_id = OLD.id;
+END$$
+DELIMITER ;
+
+-- Emulated behavior: delete parent id=2 -> children with parent_id=2 become 1
+DELETE FROM parent_default_trg WHERE id = 2;
+SELECT * FROM child_default_trg ORDER BY id;
+
+-- Note:
+--  - This is a simplified demonstration.
+--  - In production, ensure parent_id=1 always exists, handle cycles/locks carefully.
+
+/* =============================================================================
+SECTION F — Quick Recap Queries
+============================================================================= */
+
+-- Show constraint names created by MySQL for reference
+SHOW CREATE TABLE classes_restrict\G
+SHOW CREATE TABLE tickets_noaction\G
+SHOW CREATE TABLE order_items_cascade\G
+SHOW CREATE TABLE employees_setnull\G
+SHOW CREATE TABLE child_default_trg\G
+
+/* =============================================================================
+END — Key Takeaways (teacher notes)
+- RESTRICT / NO ACTION (InnoDB): block parent change/remove if children exist.
+- CASCADE: child rows update/delete automatically with parent.
+- SET NULL: detach child by nullifying FK (column must be NULLable).
+- SET DEFAULT: not supported; emulate via triggers or app logic.
+- Always use InnoDB, matching types/lengths/order, and named constraints where possible.
+============================================================================= */
 
 
 
