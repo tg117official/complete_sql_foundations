@@ -1,1 +1,216 @@
 
+########################################### Foundation For Constraints ################################################
+
+/* ===========================================================
+   INTRO (WHAT / WHY / USE-CASE)
+   PRIMARY KEY
+     WHAT: Row’s unique, non-null identifier.
+     WHY: Stable identity for joins.
+     USE-CASE: user_id, task_id.
+
+   FOREIGN KEY
+     WHAT: Child column(s) must match parent key.
+     WHY: No orphan rows; consistent relationships.
+     USE-CASE: tasks.created_by → users.user_id
+     Actions:
+       - ON DELETE NO ACTION / RESTRICT: block delete if children exist.
+       - ON DELETE SET NULL: keep child, null out FK.
+       - ON UPDATE CASCADE: reflect parent key changes to children.
+
+   UNIQUE
+     WHAT: Values must be distinct (NULL allowed; multiple NULLs permitted).
+     WHY: Prevent duplicates of business identifiers.
+     USE-CASE: users.email, (tasks.title, created_by).
+
+   NOT NULL
+     WHAT: Disallow NULLs.
+     WHY: Ensure required data is present.
+     USE-CASE: name, title.
+
+   CHECK (MySQL 8.0.16+)
+     WHAT: Expression must be true.
+     WHY: Enforce business rules at DB level.
+     USE-CASE: LENGTH(title) > 0, estimated_hours > 0, email LIKE '%@%'.
+
+   DEFAULT
+     WHAT: Value auto-filled if not supplied.
+     WHY: Sensible fallbacks.
+     USE-CASE: timestamps, status.
+
+   AUTO_INCREMENT
+     WHAT: Auto-generated integers.
+     WHY: Simple surrogate keys.
+     USE-CASE: user_id, task_id.
+   =========================================================== */
+
+-- Clean slate and predictable behavior
+DROP DATABASE IF EXISTS demo_two_tables;
+CREATE DATABASE demo_two_tables;
+USE demo_two_tables;
+SET sql_mode = 'STRICT_ALL_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+
+-- STRICT_ALL_TABLES → Rejects invalid or out-of-range data instead of silently adjusting/truncating it.
+-- ERROR_FOR_DIVISION_BY_ZERO → Throws an error when dividing by zero instead of returning 0 or NULL.
+-- NO_ENGINE_SUBSTITUTION → Fails if a specified storage engine isn’t available instead of using a default.
+
+/* ===========================================================
+   TABLE 1: users
+   Shows: PK, UNIQUE, NOT NULL, CHECK, DEFAULT, AUTO_INCREMENT
+   =========================================================== */
+DROP TABLE IF EXISTS users;
+
+-- way 1 : without naming constraints 
+
+CREATE TABLE users01 (
+  user_id     INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL,
+  email       VARCHAR(255) NOT NULL UNIQUE,
+  national_id VARCHAR(32) NULL UNIQUE,              -- multiple NULLs allowed
+  status      ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK (email LIKE '%@%')  -- simple format guard
+) ENGINE=InnoDB;
+
+-- Get names of constraints
+SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE
+FROM information_schema.TABLE_CONSTRAINTS
+WHERE TABLE_SCHEMA = 'demo_two_tables'
+  AND TABLE_NAME = 'users01';
+
+
+-- way 2 : naming the constraints
+CREATE TABLE users02 (
+  user_id     INT NOT NULL AUTO_INCREMENT,
+  name        VARCHAR(100) NOT NULL,
+  email       VARCHAR(255) NOT NULL,
+  national_id VARCHAR(32) NULL,                     -- UNIQUE but nullable (multiple NULLs allowed)
+  status      ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT PK_users PRIMARY KEY (user_id),
+  CONSTRAINT UQ_users_email UNIQUE (email),
+  CONSTRAINT UQ_users_national UNIQUE (national_id),
+  CONSTRAINT CK_users_email CHECK (email LIKE '%@%') -- simple format guard
+) ENGINE=InnoDB;
+
+-- GOOD INSERTS (users)
+INSERT INTO users (name, email, national_id) VALUES
+  ('Alice', 'alice@example.com', 'NAT-001'),
+  ('Bob',   'bob@example.com',    NULL),
+  ('Carol', 'carol@example.com', 'NAT-003');
+
+-- QUICK VALIDATIONS (users)
+SELECT 'users rows' AS check_name, COUNT(*) AS rows FROM users;
+SELECT 'distinct emails' AS check_name, COUNT(DISTINCT email) AS distinct_emails FROM users;
+
+-- VIOLATIONS (users) — run one at a time:
+-- 1) UNIQUE(email): duplicate -> should FAIL
+-- INSERT INTO users (name, email) VALUES ('Eve','alice@example.com');
+
+-- 2) CHECK(email): bad format -> should FAIL
+-- INSERT INTO users (name, email) VALUES ('Zed','not-an-email');
+
+-- 3) NOT NULL(name): missing required -> should FAIL
+-- INSERT INTO users (email) VALUES ('no-name@example.com');
+
+-- 4) UNIQUE(national_id): duplicate non-NULL -> should FAIL
+-- INSERT INTO users (name, email, national_id) VALUES ('DupNat','dup@example.com','NAT-001');
+
+
+
+/* ===========================================================
+   TABLE 2: tasks
+   Shows: PK, FK (two styles), UNIQUE composite, NOT NULL, CHECK, DEFAULT
+         - created_by → users.user_id  (ON DELETE NO ACTION/RESTRICT, ON UPDATE CASCADE)
+         - assigned_to → users.user_id (ON DELETE SET NULL,         ON UPDATE CASCADE)
+   =========================================================== */
+DROP TABLE IF EXISTS tasks;
+CREATE TABLE tasks (
+  task_id         INT NOT NULL AUTO_INCREMENT,
+  title           VARCHAR(200) NOT NULL,
+  created_by      INT  NOT NULL,   -- FK to users (strict parent)
+  assigned_to     INT  NULL,       -- FK to users (optional parent)
+  status          ENUM('todo','doing','done') NOT NULL DEFAULT 'todo',
+  estimated_hours INT  NOT NULL DEFAULT 1,
+  created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  -- Keys/constraints
+  CONSTRAINT PK_tasks PRIMARY KEY (task_id),
+  CONSTRAINT UQ_tasks_title_creator UNIQUE (title, created_by),           -- composite UNIQUE
+  CONSTRAINT CK_tasks_title_nonempty CHECK (LENGTH(title) > 0),
+  CONSTRAINT CK_tasks_hours_pos      CHECK (estimated_hours > 0),
+  CONSTRAINT FK_tasks_created_by
+    FOREIGN KEY (created_by)
+    REFERENCES users(user_id)
+    ON DELETE NO ACTION              -- behaves like RESTRICT in MySQL
+    ON UPDATE CASCADE,
+  CONSTRAINT FK_tasks_assigned_to
+    FOREIGN KEY (assigned_to)
+    REFERENCES users(user_id)
+    ON DELETE SET NULL               -- keep task, null the assignee if user deleted
+    ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- GOOD INSERTS (tasks)
+-- created_by must exist; assigned_to may be NULL or exist.
+INSERT INTO tasks (title, created_by, assigned_to, status, estimated_hours) VALUES
+  ('Prepare slides',   1, 3, 'todo', 3),  -- Alice creates, assigned to Carol
+  ('Set up projector', 1, 2, 'doing', 1), -- Alice creates, assigned to Bob
+  ('Collect feedback', 2, NULL, 'todo', 2); -- Bob creates, unassigned
+
+-- QUICK VALIDATIONS (tasks)
+SELECT t.task_id, t.title, t.created_by, u1.name AS creator, t.assigned_to, u2.name AS assignee, t.status
+FROM tasks t
+JOIN users u1 ON u1.user_id = t.created_by
+LEFT JOIN users u2 ON u2.user_id = t.assigned_to
+ORDER BY t.task_id;
+
+-- FK ACTION DEMOS (good path):
+
+-- A) ON UPDATE CASCADE: change Bob’s user_id from 2 → 20; both created_by/assigned_to that reference Bob should follow.
+UPDATE users SET user_id = 20 WHERE name = 'Bob';
+SELECT 'after update cascade' AS note;
+SELECT t.task_id, t.title, t.created_by, t.assigned_to FROM tasks ORDER BY task_id;
+
+-- B) ON DELETE SET NULL: delete Carol; any task assigned_to = Carol becomes NULL, tasks remain.
+DELETE FROM users WHERE name = 'Carol';
+SELECT 'after delete set null' AS note;
+SELECT t.task_id, t.title, t.created_by, t.assigned_to FROM tasks ORDER BY task_id;
+
+-- C) ON DELETE NO ACTION/RESTRICT: try to delete Alice (creator of tasks). This should FAIL.
+-- DELETE FROM users WHERE name = 'Alice';  -- <-- VIOLATION (uncomment to see error)
+
+
+-- VIOLATIONS (tasks) — run one at a time:
+
+-- 1) FK: created_by must exist -> should FAIL (no user_id = 9999)
+-- INSERT INTO tasks (title, created_by, assigned_to, status, estimated_hours)
+-- VALUES ('Ghost task', 9999, NULL, 'todo', 1);
+
+-- 2) FK: assigned_to must exist if not NULL -> should FAIL (no user_id = 8888)
+-- INSERT INTO tasks (title, created_by, assigned_to, status, estimated_hours)
+-- VALUES ('Wrong assignee', 1, 8888, 'todo', 1);
+
+-- 3) UNIQUE composite (title, created_by): duplicate pair -> should FAIL
+-- INSERT INTO tasks (title, created_by, assigned_to, status, estimated_hours)
+-- VALUES ('Prepare slides', 1, NULL, 'todo', 2);
+
+-- 4) CHECK(title): empty string not allowed -> should FAIL
+-- INSERT INTO tasks (title, created_by, status, estimated_hours)
+-- VALUES ('', 1, 'todo', 1);
+
+-- 5) CHECK(estimated_hours > 0): zero/negative -> should FAIL
+-- INSERT INTO tasks (title, created_by, status, estimated_hours)
+-- VALUES ('Bad effort', 1, 'todo', 0);
+
+-- 6) ENUM(status): invalid value (STRICT mode) -> should FAIL
+-- INSERT INTO tasks (title, created_by, status, estimated_hours)
+-- VALUES ('Bad status', 1, 'blocked', 1);
+
+-- 7) NOT NULL(created_by): omitted -> should FAIL
+-- INSERT INTO tasks (title, status, estimated_hours)
+-- VALUES ('No creator', 'todo', 1);
+
+
+-- EXTRA sanity checks after demos
+SELECT 'final users' AS note;  SELECT user_id, name, email FROM users ORDER BY user_id;
+SELECT 'final tasks' AS note;  SELECT task_id, title, created_by, assigned_to, status FROM tasks ORDER BY task_id;
+
