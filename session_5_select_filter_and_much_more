@@ -1,0 +1,324 @@
+-- =========================================================
+-- SQL PRACTICE: Filtering & Pattern Matching (MySQL)
+-- Covers: SELECT, WHERE, DISTINCT, AND/OR, IN/NOT IN,
+--         BETWEEN, LIKE (wildcards), IS NULL / IS NOT NULL
+-- =========================================================
+
+-- Clean start (safe to re-run)
+DROP DATABASE IF EXISTS sql_practice_filters;
+CREATE DATABASE sql_practice_filters CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+USE sql_practice_filters;
+
+-- =========================
+-- SCHEMA
+-- =========================
+
+-- Departments master
+DROP TABLE IF EXISTS departments;
+CREATE TABLE departments (
+  dept_id   INT PRIMARY KEY,
+  dept_name VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+INSERT INTO departments (dept_id, dept_name) VALUES
+ (10,'Sales'),
+ (20,'IT'),
+ (30,'HR'),
+ (40,'Finance'),
+ (50,'Operations'),
+ (60,'R&D'),
+ (70,'Marketing');
+
+-- Employees
+DROP TABLE IF EXISTS employees;
+CREATE TABLE employees (
+  emp_id     INT PRIMARY KEY,
+  first_name VARCHAR(50) NOT NULL,
+  last_name  VARCHAR(50) NOT NULL,
+  email      VARCHAR(100) UNIQUE,
+  phone      VARCHAR(15),
+  city       VARCHAR(50),
+  dept_id    INT NULL,
+  salary     DECIMAL(10,2) NOT NULL,
+  hire_date  DATE NOT NULL,
+  status     VARCHAR(20) NOT NULL DEFAULT ('ACTIVE'),
+  notes      TEXT NULL,
+  CONSTRAINT fk_emp_dept FOREIGN KEY (dept_id)
+    REFERENCES departments(dept_id)
+    ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+INSERT INTO employees
+(emp_id, first_name, last_name, email, phone, city, dept_id, salary, hire_date, status, notes) VALUES
+(1,  'Amit',   'Sharma',   'amit.sharma@example.com',   '9812345678', 'Mumbai',     10, 70000, '2022-03-15', 'ACTIVE',   NULL),
+(2,  'Sara',   'Ali',      'sara.ali@example.com',      '9822221111', 'Delhi',      20, 90000, '2021-07-01', 'ACTIVE',   NULL),
+(3,  'Ravi',   'Kumar',    'ravi.kumar@example.com',    NULL,         'Pune',       30, 55000, '2023-11-10', 'ACTIVE',   NULL),
+(4,  'Neha',   'Patil',    'neha.patil@example.com',    '9898989898', 'Mumbai',     40, 80000, '2019-12-01', 'ACTIVE',   NULL),
+(5,  'Vijay',  'Iyer',     NULL,                        '9900000001', 'Chennai',    10, 60000, '2024-01-05', 'ACTIVE',   'Contract-to-hire'),
+(6,  'Priya',  'Nair',     'priya.nair@example.com',    '9876500000', 'Hyderabad',  60,120000, '2020-04-20', 'ACTIVE',   NULL),
+(7,  'Arjun',  'Mehta',    'arjun.mehta@example.com',   '9811111111', 'Bengaluru',  20, 75000, '2022-08-18', 'ACTIVE',   NULL),
+(8,  'Sanya',  'Roy',      'sanya.roy@example.com',     '9800001234', 'Kolkata',    70, 65000, '2023-02-14', 'ACTIVE',   NULL),
+(9,  'Kunal',  'Joshi',    'kunal.joshi@example.com',   NULL,         'Pune',       50, 50000, '2018-09-30', 'INACTIVE', 'On sabbatical'),
+(10, 'Meera',  'Das',      'meera.das@example.com',     '9912345678', 'Delhi',     NULL, 40000, '2025-04-01', 'ACTIVE',   'Intern'),
+(11, 'Sameer', 'Singh',    'sameer.singh@example.com',  '9899900000', 'Mumbai',     10, 30000, '2021-01-10', 'ACTIVE',   NULL),
+(12, 'Sunita', 'Kale',     'sunita.kale@gmail.com',     '9899901234', 'Nashik',     50, 45000, '2024-07-09', 'ACTIVE',   NULL),
+(13, 'Saurabh','Choudhary','saurabh.c@example.com',     NULL,         'Jaipur',     20, 82000, '2022-12-12', 'ACTIVE',   NULL),
+(14, 'Anita',  'Rao',      'anita.rao@abc.co.in',       '9812340000', 'Hyderabad',  70, 73000, '2020-06-06', 'ACTIVE',   NULL),
+(15, 'Deepak', 'Verma',    'deepak.verma@example.com',  '9812300000', 'Bhopal',     40, 95000, '2017-05-22', 'ACTIVE',   NULL),
+(16, 'Gita',   'Menon',    'gita.menon@example.com',    '9811112222', 'Bengaluru',  60,110000, '2019-08-08', 'ACTIVE',   NULL),
+(17, 'Harsh',  'Kapoor',   'harsh.kapoor@gmail.com',    '9800123456', 'Delhi',      30, 52000, '2023-10-01', 'ACTIVE',   NULL),
+(18, 'Ishita', 'Saxena',   'ishita.saxena@example.com', '9822233344', 'Lucknow',    70, 68000, '2022-03-03', 'ACTIVE',   NULL),
+(19, 'Jay',    'Mishra',   'jay.mishra@example.com',    '9800099999', 'Delhi',      20, 77000, '2021-11-11', 'ACTIVE',   NULL),
+(20, 'Kabir',  'Khanna',   NULL,                        NULL,         'Mumbai',     20, 88000, '2025-02-02', 'ACTIVE',   'Remote');
+
+-- Products
+DROP TABLE IF EXISTS products;
+CREATE TABLE products (
+  product_id      INT PRIMARY KEY,
+  product_name    VARCHAR(100) NOT NULL,
+  category        VARCHAR(50) NOT NULL,
+  price           DECIMAL(10,2) NOT NULL,
+  in_stock        INT NOT NULL,
+  discontinued_at DATE NULL
+) ENGINE=InnoDB;
+
+INSERT INTO products (product_id, product_name, category, price, in_stock, discontinued_at) VALUES
+(1,  'iPhone 13',             'Electronics', 69999,  5,    NULL),
+(2,  'Bluetooth Speaker',     'Electronics',  2999, 120,    NULL),
+(3,  'Cricket Bat',           'Sports',        1999,  45,   NULL),
+(4,  'Yoga Mat - 6mm',        'Sports',         999, 200,   NULL),
+(5,  'Data Engineering 101',  'Books',          799,   0,   NULL),
+(6,  'Organic Almonds 1kg',   'Grocery',       1099,  75,   NULL),
+(7,  'LED TV 43"',            'Electronics',  24999,  10,   NULL),
+(8,  'Tennis Racket Pro',     'Sports',        8499,   2,  '2023-08-01'),
+(9,  'Kindle Paperwhite',     'Electronics',  12999,   0,   NULL),
+(10, 'Cookbook: Indian Veg',  'Books',          499,  33,   NULL);
+
+-- Orders (to practice IS NULL)
+DROP TABLE IF EXISTS orders;
+CREATE TABLE orders (
+  order_id     INT PRIMARY KEY,
+  customer_name VARCHAR(100) NOT NULL,
+  product_id    INT NOT NULL,
+  quantity      INT NOT NULL,
+  order_date    DATE NOT NULL,
+  shipped_date  DATE NULL,
+  status        VARCHAR(20) NOT NULL,
+  CONSTRAINT fk_orders_product FOREIGN KEY (product_id)
+    REFERENCES products(product_id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+INSERT INTO orders (order_id, customer_name, product_id, quantity, order_date, shipped_date, status) VALUES
+(101, 'Rahul Gupta',   2,  1, '2025-07-01', '2025-07-03', 'SHIPPED'),
+(102, 'Priya Singh',   3,  2, '2025-07-02', NULL,         'PENDING'),
+(103, 'Anil Kumar',    5,  1, '2025-07-05', NULL,         'PENDING'),
+(104, 'Neha Gupta',    7,  1, '2025-07-10','2025-07-12',  'SHIPPED'),
+(105, 'Vikram Rao',    1,  1, '2025-07-11', NULL,         'PENDING'),
+(106, 'Asha Menon',    6,  5, '2025-07-12','2025-07-15',  'SHIPPED'),
+(107, 'Rohit Mehta',   9,  1, '2025-07-15', NULL,         'PENDING'),
+(108, 'Sneha Patil',   4,  3, '2025-07-16','2025-07-17',  'SHIPPED'),
+(109, 'Kiran Desai',   8,  1, '2025-07-20', NULL,         'PENDING'),
+(110, 'Amit Shah',    10,  2, '2025-07-22','2025-07-25',  'SHIPPED'),
+(111, 'Pooja Iyer',    2,  1, '2025-07-25', NULL,         'PENDING'),
+(112, 'Sanjay Roy',    6,  1, '2025-07-27','2025-07-29',  'SHIPPED');
+
+-- =========================================================
+-- PRACTICE QUERIES (Run each block, read comments)
+-- =========================================================
+
+-- 1) SELECT (basic projection)
+-- Show all columns
+SELECT * FROM employees;
+
+-- Show specific columns (beginner)
+SELECT emp_id, first_name, last_name, city FROM employees ORDER BY emp_id;
+
+-- 2) WHERE (basic filtering)
+-- All employees in Mumbai
+SELECT emp_id, first_name, last_name, city
+FROM employees
+WHERE city = 'Mumbai';
+
+-- Salary greater than 75,000
+SELECT emp_id, first_name, salary
+FROM employees
+WHERE salary > 75000
+ORDER BY salary DESC;
+
+-- Hired on/after 2023-01-01
+SELECT emp_id, first_name, hire_date
+FROM employees
+WHERE hire_date >= '2023-01-01'
+ORDER BY hire_date;
+
+-- 3) DISTINCT (remove duplicates)
+-- Unique list of cities
+SELECT DISTINCT city FROM employees ORDER BY city;
+
+-- Unique product categories
+SELECT DISTINCT category FROM products ORDER BY category;
+
+-- 4) AND / OR (combine conditions)
+-- Employees in Mumbai AND salary >= 70k
+SELECT emp_id, first_name, city, salary
+FROM employees
+WHERE city = 'Mumbai' AND salary >= 70000;
+
+-- Employees in Delhi OR Pune (either city)
+SELECT emp_id, first_name, city, salary
+FROM employees
+WHERE city = 'Delhi' OR city = 'Pune'
+ORDER BY city, salary DESC;
+
+-- Correct use of parentheses with OR/AND precedence
+-- (City = Delhi) AND (salary between 60k and 90k OR status = 'INACTIVE')
+SELECT emp_id, first_name, city, salary, status
+FROM employees
+WHERE city = 'Delhi'
+  AND (salary BETWEEN 60000 AND 90000 OR status = 'INACTIVE');
+
+-- 5) IN (list membership)
+-- Employees from a set of cities
+SELECT emp_id, first_name, city
+FROM employees
+WHERE city IN ('Mumbai','Delhi','Pune')
+ORDER BY city;
+
+-- IN with subquery (intermediate):
+-- Get dept_ids of Sales & IT, then fetch employees in those departments
+SELECT emp_id, first_name, dept_id
+FROM employees
+WHERE dept_id IN (
+  SELECT dept_id FROM departments WHERE dept_name IN ('Sales','IT')
+)
+ORDER BY dept_id, first_name;
+
+-- 6) NOT IN (exclude a list) – simple list
+SELECT emp_id, first_name, dept_id
+FROM employees
+WHERE dept_id NOT IN (30, 70)   -- exclude HR(30) and Marketing(70)
+ORDER BY dept_id;
+
+-- 6a) NOT IN NULL GOTCHA (intermediate, important!)
+-- If the subquery can return NULL, NOT IN returns NO ROWS (3-valued logic).
+-- Below subquery draws dept_ids from employees where some employees have dept_id NULL.
+-- EXPECTED: This returns 0 rows because the subquery includes NULL.
+SELECT emp_id, first_name, dept_id
+FROM employees
+WHERE dept_id NOT IN (SELECT dept_id FROM employees);
+
+-- 6b) FIX the NULL gotcha by filtering NULLs inside subquery
+SELECT emp_id, first_name, dept_id
+FROM employees
+WHERE dept_id NOT IN (
+  SELECT dept_id FROM employees WHERE dept_id IS NOT NULL
+);
+
+-- 7) General filtering combos: WHERE + ORDER BY + LIMIT
+-- Top 5 highest-paid active employees in IT or R&D
+SELECT emp_id, first_name, dept_id, salary
+FROM employees
+WHERE status = 'ACTIVE'
+  AND dept_id IN (20, 60)
+ORDER BY salary DESC
+LIMIT 5;
+
+-- 8) BETWEEN (inclusive boundaries)
+-- Salary between 50k and 80k (inclusive)
+SELECT emp_id, first_name, salary
+FROM employees
+WHERE salary BETWEEN 50000 AND 80000
+ORDER BY salary;
+
+-- Hire date between 2022 and 2024 (inclusive)
+SELECT emp_id, first_name, hire_date
+FROM employees
+WHERE hire_date BETWEEN '2022-01-01' AND '2024-12-31'
+ORDER BY hire_date;
+
+-- 9) LIKE (pattern matching) – % (any length), _ (single char)
+-- Names starting with 'S' (case-insensitive in default CI collation)
+SELECT emp_id, first_name
+FROM employees
+WHERE first_name LIKE 'S%';
+
+-- Emails ending with @gmail.com
+SELECT emp_id, email
+FROM employees
+WHERE email LIKE '%@gmail.com';
+
+-- Phone numbers starting with '98' and followed by ANY 8 digits
+SELECT emp_id, phone
+FROM employees
+WHERE phone LIKE '98________';
+
+-- Product names containing the word 'Mat' anywhere
+SELECT product_id, product_name
+FROM products
+WHERE product_name LIKE '%Mat%';
+
+-- 10) IS NULL / IS NOT NULL
+-- Employees with missing email (NULL)
+SELECT emp_id, first_name, email
+FROM employees
+WHERE email IS NULL;
+
+-- Orders not yet shipped (shipped_date is NULL)
+SELECT order_id, customer_name, product_id, status
+FROM orders
+WHERE shipped_date IS NULL;
+
+-- Products that WERE discontinued (date present)
+SELECT product_id, product_name, discontinued_at
+FROM products
+WHERE discontinued_at IS NOT NULL;
+
+-- 11) Filtering with BETWEEN + IN + NULL checks together (intermediate)
+-- Active employees in Sales/IT hired in/after 2022 with salary 60k..100k and a known (non-NULL) email
+SELECT emp_id, first_name, dept_id, salary, hire_date, email
+FROM employees
+WHERE status = 'ACTIVE'
+  AND dept_id IN (SELECT dept_id FROM departments WHERE dept_name IN ('Sales','IT'))
+  AND hire_date BETWEEN '2022-01-01' AND CURDATE()
+  AND salary BETWEEN 60000 AND 100000
+  AND email IS NOT NULL
+ORDER BY salary DESC;
+
+-- 12) DISTINCT + LIKE (intermediate)
+-- Distinct cities of employees whose name starts with 'A' or 'S'
+SELECT DISTINCT city
+FROM employees
+WHERE first_name LIKE 'A%' OR first_name LIKE 'S%'
+ORDER BY city;
+
+-- 13) Bonus filtering on products
+-- In-stock Electronics priced between 10k and 70k (inclusive)
+SELECT product_id, product_name, price, in_stock
+FROM products
+WHERE category = 'Electronics'
+  AND price BETWEEN 10000 AND 70000
+  AND in_stock > 0
+ORDER BY price;
+
+-- 14) Bonus: IN with subquery against orders (intermediate)
+-- Customers who ordered any product that is currently out of stock (in_stock = 0)
+SELECT DISTINCT o.customer_name
+FROM orders o
+WHERE o.product_id IN (SELECT p.product_id FROM products p WHERE p.in_stock = 0);
+
+-- 15) Edge case: NOT IN vs NOT EXISTS (NULL-safe alternative)
+-- Show employees NOT in any department (dept_id is NULL) using IS NULL
+SELECT emp_id, first_name, dept_id
+FROM employees
+WHERE dept_id IS NULL;
+
+-- Show employees whose dept_id is not present in departments table
+-- Prefer NOT EXISTS (NULL-safe) over NOT IN subquery.
+SELECT e.emp_id, e.first_name, e.dept_id
+FROM employees e
+WHERE e.dept_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM departments d WHERE d.dept_id = e.dept_id);
+
+-- =========================
+-- END OF PRACTICE
+-- =========================
