@@ -1,1 +1,138 @@
+############################################################# Absolute Basics #####################################################################
 
+/*
+===============================================================================
+MySQL BASICS — Syntax Demonstration Script
+Author: <Your Name>
+Purpose: To introduce absolute beginners to MySQL syntax before complex topics
+===============================================================================
+
+HOW TO USE:
+- Run this script step-by-step in MySQL CLI, Workbench, or phpMyAdmin.
+- Read the WHY and WHAT in comments.
+- Observe the result of each statement.
+===============================================================================
+*/
+
+
+/* ---------------------------------------------------------------------------
+1. CREATE DATABASE
+WHY: A database is a container for related tables.
+WHAT: CREATE DATABASE creates a new database.
+--------------------------------------------------------------------------- */
+DROP DATABASE IF EXISTS basics_demo; -- Cleanup for re-run
+CREATE DATABASE basics_demo;
+SHOW DATABASES; -- See the new database in the list
+
+
+/* ---------------------------------------------------------------------------
+2. USE DATABASE
+WHY: You must 'enter' the database you want to work with.
+WHAT: USE sets the active database for table creation & queries.
+--------------------------------------------------------------------------- */
+USE basics_demo;
+
+
+/* ---------------------------------------------------------------------------
+3. CREATE TABLE
+WHY: Tables store actual data in rows & columns.
+WHAT: CREATE TABLE defines the structure.
+--------------------------------------------------------------------------- */
+DROP TABLE IF EXISTS students;
+CREATE TABLE students (
+    student_id INT,           -- Integer type
+    first_name VARCHAR(50),   -- Text type (up to 50 characters)
+    last_name VARCHAR(50),
+    email VARCHAR(100)
+);
+SHOW TABLES; -- Should show 'students'
+DESCRIBE students; -- View table structure
+
+
+/* ---------------------------------------------------------------------------
+4. INSERT DATA INTO TABLE
+WHY: INSERT adds rows to a table.
+WHAT: INSERT INTO specifies table & values for each column.
+--------------------------------------------------------------------------- */
+INSERT INTO students (student_id, first_name, last_name, email) VALUES
+(1, 'Asha', 'Singh', 'asha@example.com'),
+(2, 'Rohit', 'Patil', 'rohit@example.com');
+
+SELECT * FROM students; -- View inserted data
+
+
+/* ---------------------------------------------------------------------------
+5. SELECT DATA
+WHY: SELECT retrieves rows from the table.
+WHAT: SELECT column1, column2 FROM table WHERE condition;
+--------------------------------------------------------------------------- */
+-- Select all columns
+SELECT * FROM students;
+
+-- Select specific columns
+SELECT first_name, email FROM students;
+
+-- Select with a filter
+SELECT * FROM students WHERE student_id = 1;
+
+
+/* ---------------------------------------------------------------------------
+6. UPDATE DATA
+WHY: UPDATE modifies existing rows.
+WHAT: UPDATE table SET column=value WHERE condition;
+--------------------------------------------------------------------------- */
+UPDATE students
+SET email = 'asha.new@example.com'
+WHERE student_id = 1;
+
+SELECT * FROM students;
+
+
+/* ---------------------------------------------------------------------------
+7. DELETE DATA
+WHY: DELETE removes rows from a table.
+WHAT: DELETE FROM table WHERE condition;
+--------------------------------------------------------------------------- */
+DELETE FROM students WHERE student_id = 2;
+SELECT * FROM students;
+
+
+/* ---------------------------------------------------------------------------
+8. ALTER TABLE
+WHY: ALTER changes the structure of a table.
+WHAT: ALTER TABLE table_name ADD/MODIFY/DROP column;
+--------------------------------------------------------------------------- */
+-- Add a new column
+ALTER TABLE students ADD COLUMN phone VARCHAR(15);
+
+-- Modify column size
+ALTER TABLE students MODIFY COLUMN phone VARCHAR(20);
+
+-- Rename a column
+ALTER TABLE students CHANGE COLUMN phone contact_number VARCHAR(20);
+
+DESCRIBE students;
+
+
+/* ---------------------------------------------------------------------------
+9. DROP TABLE
+WHY: DROP TABLE permanently deletes the table structure & data.
+WHAT: DROP TABLE table_name;
+--------------------------------------------------------------------------- */
+DROP TABLE students;
+SHOW TABLES; -- Should be empty again
+
+
+/* ---------------------------------------------------------------------------
+10. DROP DATABASE
+WHY: DROP DATABASE removes the database and all its tables.
+WHAT: DROP DATABASE db_name;
+--------------------------------------------------------------------------- */
+DROP DATABASE basics_demo;
+SHOW DATABASES; -- Should not show basics_demo anymore
+
+/*
+===============================================================================
+END OF SCRIPT
+===============================================================================
+*/
