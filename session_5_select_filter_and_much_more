@@ -196,8 +196,8 @@ ORDER BY dept_id, first_name;
 -- 6) NOT IN (exclude a list) – simple list
 SELECT emp_id, first_name, dept_id
 FROM employees
-WHERE dept_id NOT IN (30, 70)   -- exclude HR(30) and Marketing(70)
-ORDER BY dept_id;
+WHERE dept_id NOT IN (30, 70);   -- exclude HR(30) and Marketing(70)
+
 
 -- 6a) NOT IN NULL GOTCHA (intermediate, important!)
 -- If the subquery can return NULL, NOT IN returns NO ROWS (3-valued logic).
@@ -214,16 +214,8 @@ WHERE dept_id NOT IN (
   SELECT dept_id FROM employees WHERE dept_id IS NOT NULL
 );
 
--- 7) General filtering combos: WHERE + ORDER BY + LIMIT
--- Top 5 highest-paid active employees in IT or R&D
-SELECT emp_id, first_name, dept_id, salary
-FROM employees
-WHERE status = 'ACTIVE'
-  AND dept_id IN (20, 60)
-ORDER BY salary DESC
-LIMIT 5;
 
--- 8) BETWEEN (inclusive boundaries)
+-- 7) BETWEEN (inclusive boundaries)
 -- Salary between 50k and 80k (inclusive)
 SELECT emp_id, first_name, salary
 FROM employees
@@ -236,7 +228,7 @@ FROM employees
 WHERE hire_date BETWEEN '2022-01-01' AND '2024-12-31'
 ORDER BY hire_date;
 
--- 9) LIKE (pattern matching) – % (any length), _ (single char)
+-- 8) LIKE (pattern matching) – % (any length), _ (single char)
 -- Names starting with 'S' (case-insensitive in default CI collation)
 SELECT emp_id, first_name
 FROM employees
@@ -257,7 +249,7 @@ SELECT product_id, product_name
 FROM products
 WHERE product_name LIKE '%Mat%';
 
--- 10) IS NULL / IS NOT NULL
+-- 9) IS NULL / IS NOT NULL
 -- Employees with missing email (NULL)
 SELECT emp_id, first_name, email
 FROM employees
@@ -273,7 +265,7 @@ SELECT product_id, product_name, discontinued_at
 FROM products
 WHERE discontinued_at IS NOT NULL;
 
--- 11) Filtering with BETWEEN + IN + NULL checks together (intermediate)
+-- 10) Filtering with BETWEEN + IN + NULL checks together (intermediate)
 -- Active employees in Sales/IT hired in/after 2022 with salary 60k..100k and a known (non-NULL) email
 SELECT emp_id, first_name, dept_id, salary, hire_date, email
 FROM employees
@@ -281,43 +273,29 @@ WHERE status = 'ACTIVE'
   AND dept_id IN (SELECT dept_id FROM departments WHERE dept_name IN ('Sales','IT'))
   AND hire_date BETWEEN '2022-01-01' AND CURDATE()
   AND salary BETWEEN 60000 AND 100000
-  AND email IS NOT NULL
-ORDER BY salary DESC;
+  AND email IS NOT NULL ;
 
--- 12) DISTINCT + LIKE (intermediate)
+-- 11) DISTINCT + LIKE (intermediate)
 -- Distinct cities of employees whose name starts with 'A' or 'S'
 SELECT DISTINCT city
 FROM employees
-WHERE first_name LIKE 'A%' OR first_name LIKE 'S%'
-ORDER BY city;
+WHERE first_name LIKE 'A%' OR first_name LIKE 'S%' ;
 
--- 13) Bonus filtering on products
+-- 12) Bonus filtering on products
 -- In-stock Electronics priced between 10k and 70k (inclusive)
 SELECT product_id, product_name, price, in_stock
 FROM products
 WHERE category = 'Electronics'
   AND price BETWEEN 10000 AND 70000
-  AND in_stock > 0
-ORDER BY price;
+  AND in_stock > 0 ;
 
--- 14) Bonus: IN with subquery against orders (intermediate)
--- Customers who ordered any product that is currently out of stock (in_stock = 0)
-SELECT DISTINCT o.customer_name
-FROM orders o
-WHERE o.product_id IN (SELECT p.product_id FROM products p WHERE p.in_stock = 0);
 
--- 15) Edge case: NOT IN vs NOT EXISTS (NULL-safe alternative)
+-- 13) Edge case: NOT IN vs NOT EXISTS (NULL-safe alternative)
 -- Show employees NOT in any department (dept_id is NULL) using IS NULL
 SELECT emp_id, first_name, dept_id
 FROM employees
 WHERE dept_id IS NULL;
 
--- Show employees whose dept_id is not present in departments table
--- Prefer NOT EXISTS (NULL-safe) over NOT IN subquery.
-SELECT e.emp_id, e.first_name, e.dept_id
-FROM employees e
-WHERE e.dept_id IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM departments d WHERE d.dept_id = e.dept_id);
 
 -- =========================
 -- END OF PRACTICE
