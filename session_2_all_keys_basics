@@ -1,1 +1,80 @@
+############################################# Foundations for Keys ############################################################################
+
+-- Optional sandbox
+-- DROP DATABASE IF EXISTS demo_keys;
+-- CREATE DATABASE demo_keys; USE demo_keys;
+
+-- ============ A) PRIMARY KEY (PK) ============
+-- Why: Uniquely identify each row; needed for reliable lookups/relations.
+-- What: Column(s) that are unique + NOT NULL.
+-- Real-life: National ID → one person, one ID.
+DROP TABLE IF EXISTS students_pk;
+CREATE TABLE students_pk (
+  student_id INT PRIMARY KEY,
+  name VARCHAR(50)
+);
+-- student_id ensures unique student records.
+
+
+-- ============ B) COMPOSITE PRIMARY KEY ============
+-- Why: Sometimes uniqueness needs multiple columns.
+-- What: Two+ columns together form the PK.
+-- Real-life: (FlightNumber + Date) = unique flight day.
+DROP TABLE IF EXISTS enrollments;
+CREATE TABLE enrollments (
+  student_id INT,
+  course_id  INT,
+  PRIMARY KEY (student_id, course_id)
+);
+
+
+-- ============ C) FOREIGN KEY (FK) ============
+-- Why: Enforce parent→child relationships; no orphans.
+-- What: Column in child references parent’s PK.
+-- Real-life: borrowed_books.user_id must exist in users.user_id.
+DROP TABLE IF EXISTS users_fk;
+CREATE TABLE users_fk (
+  user_id INT PRIMARY KEY,
+  name    VARCHAR(50) NOT NULL
+);
+
+DROP TABLE IF EXISTS orders_fk;
+CREATE TABLE orders_fk (
+  order_id INT PRIMARY KEY,
+  user_id  INT,
+  FOREIGN KEY (user_id) REFERENCES users_fk(user_id)
+);
+
+
+-- ============ D) UNIQUE KEY ============
+-- Why: Prevent duplicates in non-PK columns (NULLs allowed).
+-- What: Like PK rules but not “the” primary identifier.
+-- Real-life: One account per email.
+DROP TABLE IF EXISTS users_unique;
+CREATE TABLE users_unique (
+  user_id INT PRIMARY KEY,
+  email   VARCHAR(100) UNIQUE
+);
+
+
+-- ============ E) SURROGATE vs NATURAL KEYS ============
+-- Natural key: real-world identifier (email, ISBN).
+-- Surrogate key: artificial ID (AUTO_INCREMENT).
+DROP TABLE IF EXISTS students_keys;
+CREATE TABLE students_keys (
+    student_id   INT PRIMARY KEY AUTO_INCREMENT, -- Surrogate
+    national_id  CHAR(9) UNIQUE NOT NULL,        -- Natural
+    name         VARCHAR(100) NOT NULL,
+    date_of_birth DATE NOT NULL
+);
+
+DROP TABLE IF EXISTS books_keys;
+CREATE TABLE books_keys (
+    book_id        INT PRIMARY KEY AUTO_INCREMENT, -- Surrogate
+    isbn           CHAR(13) UNIQUE,                -- Natural
+    title          VARCHAR(200) NOT NULL,
+    author         VARCHAR(100) NOT NULL,
+    published_year INT
+);
+
 
