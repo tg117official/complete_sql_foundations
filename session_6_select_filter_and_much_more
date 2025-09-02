@@ -152,10 +152,10 @@ WHERE hire_date >= '2023-01-01';
 
 -- 3) DISTINCT (remove duplicates)
 -- Unique list of cities
-SELECT DISTINCT city FROM employees ORDER BY city;
+SELECT DISTINCT city FROM employees ;
 
 -- Unique product categories
-SELECT DISTINCT category FROM products ORDER BY category;
+SELECT DISTINCT category FROM products ;
 
 -- 4) AND / OR (combine conditions)
 -- Employees in Mumbai AND salary >= 70k
