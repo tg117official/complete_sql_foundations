@@ -143,14 +143,12 @@ WHERE city = 'Mumbai';
 -- Salary greater than 75,000
 SELECT emp_id, first_name, salary
 FROM employees
-WHERE salary > 75000
-ORDER BY salary DESC;
+WHERE salary > 75000;
 
 -- Hired on/after 2023-01-01
 SELECT emp_id, first_name, hire_date
 FROM employees
-WHERE hire_date >= '2023-01-01'
-ORDER BY hire_date;
+WHERE hire_date >= '2023-01-01';
 
 -- 3) DISTINCT (remove duplicates)
 -- Unique list of cities
@@ -168,8 +166,7 @@ WHERE city = 'Mumbai' AND salary >= 70000;
 -- Employees in Delhi OR Pune (either city)
 SELECT emp_id, first_name, city, salary
 FROM employees
-WHERE city = 'Delhi' OR city = 'Pune'
-ORDER BY city, salary DESC;
+WHERE city = 'Delhi' OR city = 'Pune';
 
 -- Correct use of parentheses with OR/AND precedence
 -- (City = Delhi) AND (salary between 60k and 90k OR status = 'INACTIVE')
@@ -182,8 +179,7 @@ WHERE city = 'Delhi'
 -- Employees from a set of cities
 SELECT emp_id, first_name, city
 FROM employees
-WHERE city IN ('Mumbai','Delhi','Pune')
-ORDER BY city;
+WHERE city IN ('Mumbai','Delhi','Pune');
 
 
 -- 6) NOT IN (exclude a list) – simple list
@@ -196,14 +192,12 @@ WHERE dept_id NOT IN (30, 70);   -- exclude HR(30) and Marketing(70)
 -- Salary between 50k and 80k (inclusive)
 SELECT emp_id, first_name, salary
 FROM employees
-WHERE salary BETWEEN 50000 AND 80000
-ORDER BY salary;
+WHERE salary BETWEEN 50000 AND 80000;
 
 -- Hire date between 2022 and 2024 (inclusive)
 SELECT emp_id, first_name, hire_date
 FROM employees
-WHERE hire_date BETWEEN '2022-01-01' AND '2024-12-31'
-ORDER BY hire_date;
+WHERE hire_date BETWEEN '2022-01-01' AND '2024-12-31';
 
 -- 8) LIKE (pattern matching) – % (any length), _ (single char)
 -- Names starting with 'S' (case-insensitive in default CI collation)
