@@ -1,0 +1,488 @@
+-- Clean start (safe to re-run)
+DROP DATABASE IF EXISTS sql_practice_filters;
+CREATE DATABASE sql_practice_filters CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+USE sql_practice_filters;
+
+-- Drop if exists
+DROP TABLE IF EXISTS sales;
+
+-- Table Definition
+CREATE TABLE sales (
+  sale_id       INT PRIMARY KEY,
+  customer_name VARCHAR(100) NOT NULL,
+  region        VARCHAR(50) NOT NULL,
+  product       VARCHAR(100) NOT NULL,
+  category      ENUM('Electronics','Clothing','Grocery','Books','Sports') NOT NULL,
+  quantity      INT NOT NULL,
+  unit_price    DECIMAL(10,2) NOT NULL,
+  discount_pct  DECIMAL(5,2) NULL,
+  sale_date     DATE NOT NULL,
+  payment_mode  ENUM('Card','UPI','Cash','NetBanking','Wallet') NOT NULL,
+  status        ENUM('Completed','Pending','Cancelled') NOT NULL,
+  notes         TEXT NULL
+) ENGINE=InnoDB;
+
+-- Insert 20 Records
+INSERT INTO sales 
+(sale_id, customer_name, region, product, category, quantity, unit_price, discount_pct, sale_date, payment_mode, status, notes) VALUES
+(1,  'Amit Sharma',     'North', 'iPhone 13',         'Electronics',  1, 69999, 10.00, '2025-01-10', 'Card',       'Completed', NULL),
+(2,  'Priya Singh',     'South', 'Bluetooth Speaker', 'Electronics',  2, 2999,  NULL,  '2025-01-12', 'UPI',        'Pending',   NULL),
+(3,  'Ravi Kumar',      'West',  'Yoga Mat - 6mm',    'Sports',       3, 999,   5.00,  '2025-01-15', 'Cash',       'Completed', 'Gift pack'),
+(4,  'Neha Verma',      'East',  'Cricket Bat',       'Sports',       1, 1999,  NULL,  '2025-01-18', 'Wallet',     'Cancelled', NULL),
+(5,  'Vijay Iyer',      'North', 'Cookbook',          'Books',        2, 499,   NULL,  '2025-01-20', 'NetBanking', 'Completed', NULL),
+(6,  'Sara Ali',        'South', 'LED TV 43"',        'Electronics',  1, 24999, 15.00, '2025-01-22', 'Card',       'Completed', NULL),
+(7,  'Arjun Mehta',     'West',  'Organic Almonds',   'Grocery',      5, 1099,  NULL,  '2025-01-25', 'UPI',        'Completed', NULL),
+(8,  'Sanya Roy',       'East',  'Tennis Racket',     'Sports',       1, 8499,  20.00, '2025-01-28', 'Card',       'Pending',   NULL),
+(9,  'Kunal Joshi',     'North', 'Kindle Paperwhite', 'Electronics',  1, 12999, NULL,  '2025-02-01', 'UPI',        'Completed', NULL),
+(10, 'Meera Das',       'South', 'T-Shirt',           'Clothing',     4, 799,   10.00, '2025-02-03', 'Cash',       'Completed', 'Bulk order'),
+(11, 'Sameer Singh',    'West',  'Shoes',             'Clothing',     2, 2999,  5.00,  '2025-02-05', 'Wallet',     'Cancelled', NULL),
+(12, 'Sunita Kale',     'East',  'Data Engg Book',    'Books',        1, 799,   NULL,  '2025-02-07', 'Card',       'Completed', NULL),
+(13, 'Saurabh Choudhary','North','Rice Bag 10kg',     'Grocery',      2, 599,   NULL,  '2025-02-10', 'NetBanking', 'Completed', NULL),
+(14, 'Anita Rao',       'South', 'Jacket',            'Clothing',     1, 2499,  NULL,  '2025-02-11', 'UPI',        'Pending',   NULL),
+(15, 'Deepak Verma',    'West',  'Football',          'Sports',       2, 1499,  10.00, '2025-02-12', 'Card',       'Completed', NULL),
+(16, 'Gita Menon',      'East',  'Laptop',            'Electronics',  1, 55999, 25.00, '2025-02-14', 'Card',       'Completed', NULL),
+(17, 'Harsh Kapoor',    'North', 'Notebook Pack',     'Books',        5, 99,    NULL,  '2025-02-15', 'Wallet',     'Completed', NULL),
+(18, 'Ishita Saxena',   'South', 'Saree',             'Clothing',     1, 1999,  NULL,  '2025-02-16', 'Cash',       'Cancelled', NULL),
+(19, 'Jay Mishra',      'West',  'Protein Powder',    'Grocery',      1, 2999,  5.00,  '2025-02-18', 'UPI',        'Completed', NULL),
+(20, 'Kabir Khanna',    'East',  'Smartwatch',        'Electronics',  1, 9999,  NULL,  '2025-02-20', 'Card',       'Pending',   NULL);
+
+
+-- ============================================================================
+-- SALES TABLE PRACTICE: SELECT + WHERE + GROUP BY (+ HAVING)
+-- 12 exercises (beginner → advanced). Solutions included.
+-- NOTE: No JOIN / ORDER BY / LIMIT used.
+-- Table used: sales  (created earlier)
+-- ============================================================================
+
+
+
+
+-- ================================ SECTION 1 =================================
+/* ----------------------------------------------------------------------------
+Exercise 1 (Warm-up: plain GROUP BY)
+Count number of sales rows per category.
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT category, COUNT(*) AS sales_rows
+FROM sales
+GROUP BY category;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 2 (GROUP BY + arithmetic)
+Compute total gross revenue per region (quantity * unit_price), ignoring discount.
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT region, SUM(quantity * unit_price) AS gross_revenue
+FROM sales
+GROUP BY region;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 3 (GROUP BY status)
+Count sales by status (Completed / Pending / Cancelled).
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT status, COUNT(*) AS cnt
+FROM sales
+GROUP BY status;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 4 (WHERE row filter + GROUP BY)
+For February 2025 only, total quantity per category.
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT category, SUM(quantity) AS total_qty_feb_2025
+FROM sales
+WHERE sale_date BETWEEN '2025-02-01' AND '2025-02-28'
+GROUP BY category;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 5 (WHERE + GROUP BY + AVG)
+Average unit price per category for Completed sales only.
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT category, AVG(unit_price) AS avg_price_completed
+FROM sales
+WHERE status = 'Completed'
+GROUP BY category;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 6 (GROUP BY + HAVING: group-level filter)
+Customers (Completed sales only) whose total purchased quantity >= 3.
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT customer_name, SUM(quantity) AS total_qty_completed
+FROM sales
+WHERE status = 'Completed'
+GROUP BY customer_name
+HAVING SUM(quantity) >= 3;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 7 (Filter NULLs + GROUP BY + HAVING)
+Categories whose average discount (consider only rows with a discount) > 10%.
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT category, AVG(discount_pct) AS avg_discount_pct
+FROM sales
+WHERE discount_pct IS NOT NULL
+GROUP BY category
+HAVING AVG(discount_pct) > 10;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 8 (Computed metric + WHERE + GROUP BY)
+Payment-mode wise net revenue for Completed sales.
+Net revenue = quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT payment_mode,
+       SUM( quantity * unit_price * (1 - IFNULL(discount_pct,0)/100) ) AS net_revenue
+FROM sales
+WHERE status = 'Completed'
+GROUP BY payment_mode;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 9 (COUNT DISTINCT + GROUP BY)
+Per region, count distinct customers who made any sale.
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT region, COUNT(DISTINCT customer_name) AS distinct_customers
+FROM sales
+GROUP BY region;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 10 (WHERE + GROUP BY + HAVING with BETWEEN)
+Products whose total Completed quantity is between 2 and 5 (inclusive).
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT product, SUM(quantity) AS total_completed_qty
+FROM sales
+WHERE status = 'Completed'
+GROUP BY product
+HAVING SUM(quantity) BETWEEN 2 AND 5;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 11 (Pattern filter + GROUP BY)
+For customers whose name starts with 'S', show their total net spend on Completed sales.
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT customer_name,
+       SUM( quantity * unit_price * (1 - IFNULL(discount_pct,0)/100) ) AS net_spend
+FROM sales
+WHERE status = 'Completed'
+  AND customer_name LIKE 'S%'
+GROUP BY customer_name;
+
+
+/* ----------------------------------------------------------------------------
+Exercise 12 (Date rollup + HAVING)
+Day-wise total ordered quantity; keep only days where total quantity > 3.
+----------------------------------------------------------------------------- */
+-- Solution:
+SELECT sale_date, SUM(quantity) AS total_qty
+FROM sales
+GROUP BY sale_date
+HAVING SUM(quantity) > 3;
+
+/*
+
+* `WHERE` filters rows before grouping/aggregation, works only with raw columns (no aggregates).
+* `HAVING` filters groups after aggregation, works with aggregate functions as well as group expressions.
+
+Quick memory hook:
+
+* Row-level? → WHERE
+* Group-level? → HAVING 
+
+Order of Execution : 
+
+FROM → pick table(s).
+WHERE → filter out rows you don’t want.
+GROUP BY → make groups of the remaining rows.
+HAVING → filter groups based on aggregate conditions.
+SELECT → produce the final result set.
+
+*/
+
+
+
+-- ================================ SECTION 2 =================================
+
+-- Use your practice DB
+USE sql_practice_filters;
+
+-- Use your practice DB
+USE sql_practice_filters;
+
+-- =====================================================================
+-- 4 INTERMEDIATE → ADVANCED EXERCISES
+-- Written for ABSOLUTE BEGINNERS with detailed explanations in comments
+-- Focus: SELECT + WHERE + GROUP BY (+ HAVING), no JOIN/ORDER/LIMIT.
+-- Table: sales
+-- =====================================================================
+
+
+/* ---------------------------------------------------------------------
+Exercise 1:
+Question (in simple words):
+For each region and category, find:
+   1) How many rows (sales records) are in that group,
+   2) What is the total revenue (quantity * unit_price),
+   3) How many of those rows had a discount.
+
+BUT only keep groups where:
+   - At least 1 sale had a discount (discount_pct IS NOT NULL),
+   - AND the total revenue of that group is greater than 10,000.
+
+Terminologies:
+- GROUP BY: used to group rows into buckets (here region+category).
+- Aggregate: SUM, COUNT, AVG are functions that work on groups.
+- HAVING: filters after grouping (on groups, not individual rows).
+--------------------------------------------------------------------- */
+SELECT
+  region,
+  category,
+  COUNT(*)                         AS rows_in_group,     -- how many rows in this group
+  SUM(quantity * unit_price)       AS gross_revenue,     -- total value without discount
+  COUNT(discount_pct)              AS discounted_rows    -- only counts rows where discount_pct is NOT NULL
+FROM sales
+WHERE status IN ('Completed','Pending')   -- only include these rows before grouping
+GROUP BY region, category
+HAVING COUNT(discount_pct) >= 1           -- at least 1 discounted row
+   AND SUM(quantity * unit_price) > 10000;-- total revenue > 10000
+
+
+
+/* ---------------------------------------------------------------------
+Exercise 2:
+Question:
+For each region, consider only "Completed" sales.
+   - Count distinct customers (no duplicates),
+   - Calculate net revenue (after discount applied),
+   - Keep only those regions where:
+       1) Net revenue > 50,000
+       2) At least 3 distinct customers bought something.
+
+Terminologies:
+- DISTINCT: makes sure we count unique values.
+- IFNULL(x,0): replaces NULL with 0 (here for discount_pct).
+- HAVING: applies rules on the grouped results.
+--------------------------------------------------------------------- */
+SELECT
+  region,
+  COUNT(DISTINCT customer_name) AS distinct_customers,  -- unique customers per region
+  SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) AS net_revenue
+FROM sales
+WHERE status = 'Completed'
+GROUP BY region
+HAVING SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) > 50000
+   AND COUNT(DISTINCT customer_name) >= 3;
+
+
+
+/* ---------------------------------------------------------------------
+Exercise 3:
+Question:
+For each payment mode (Card, UPI, etc.), on Completed sales with a discount:
+   - Find average discount percentage (AVG).
+   - Calculate weighted average unit price:
+        (total money after discount ÷ total quantity).
+   - Keep only those payment modes where:
+        1) Avg discount > 12
+        2) Weighted average price between 1000 and 40000.
+
+Terminologies:
+- AVG: average value for a group.
+- Weighted average: accounts for quantity properly, not just simple average.
+- BETWEEN: used to check if a value lies in a range.
+--------------------------------------------------------------------- */
+SELECT
+  payment_mode,
+  AVG(discount_pct) AS avg_discount_pct,  -- average discount %
+  SUM(quantity * unit_price * (1 - discount_pct/100)) / SUM(quantity) AS weighted_avg_price
+FROM sales
+WHERE status = 'Completed'
+  AND discount_pct IS NOT NULL
+GROUP BY payment_mode
+HAVING AVG(discount_pct) > 12
+   AND (SUM(quantity * unit_price * (1 - discount_pct/100)) / SUM(quantity)) BETWEEN 1000 AND 40000;
+
+
+
+/* ---------------------------------------------------------------------
+Exercise 4 :
+Question:
+For each sale_date, calculate:
+   - How many different categories were sold (COUNT DISTINCT),
+   - Total quantity sold,
+   - Net revenue (with discount).
+
+Then keep only those days where:
+   1) At least 2 categories were sold,
+   2) Total quantity > 3,
+   3) Net revenue between 5000 and 100000.
+
+Terminologies:
+- COUNT(DISTINCT ...): counts unique values.
+- Net revenue: includes discount effect.
+- HAVING with multiple conditions: filters groups by more than one rule.
+--------------------------------------------------------------------- */
+SELECT
+  sale_date,
+  COUNT(DISTINCT category) AS categories_sold,
+  SUM(quantity)            AS total_qty,
+  SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) AS net_revenue
+FROM sales
+GROUP BY sale_date
+HAVING COUNT(DISTINCT category) >= 2
+   AND SUM(quantity) > 3
+   AND SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) BETWEEN 5000 AND 100000;
+
+
+
+-- ================================ SECTION 3 =================================
+
+-- Use your practice DB
+USE sql_practice_filters;
+
+-- =====================================================================================
+-- 5 MACHINE-TEST / INTERVIEW QUESTIONS (sales table only)
+-- Scope: SELECT + WHERE + GROUP BY (+ HAVING, aggregates, expressions)
+-- NO JOINs, NO ORDER BY, NO LIMIT, NO subqueries, NO window functions.
+-- Table: sales (single table)
+-- Difficulty: stepped up; heavy use of multi-column GROUP BY and HAVING.
+-- =====================================================================================
+
+
+/* =====================================================================================
+Q1) Region × Category performance (Completed & Pending only)
+For each (region, category) group:
+  • rows_in_group            = COUNT(*)
+  • gross_revenue            = SUM(quantity * unit_price)
+  • discounted_rows          = COUNT(discount_pct)           -- counts only NOT NULL discounts
+Keep only groups where:
+  • discounted_rows >= 2
+  • gross_revenue  > 20000
+-------------------------------------------------------------------------------------- */
+-- Solution:
+SELECT
+  region,
+  category,
+  COUNT(*)                           AS rows_in_group,
+  SUM(quantity * unit_price)         AS gross_revenue,
+  COUNT(discount_pct)                AS discounted_rows
+FROM sales
+WHERE status IN ('Completed','Pending')
+GROUP BY region, category
+HAVING COUNT(discount_pct) >= 2
+   AND SUM(quantity * unit_price) > 20000;
+
+
+
+/* =====================================================================================
+Q2) Weighted pricing by Payment Mode × Category (Completed sales with discounts)
+Among rows where status='Completed' AND discount_pct IS NOT NULL:
+  • avg_discount_pct  = AVG(discount_pct)
+  • weighted_avg_price= SUM(qty * price * (1 - discount_pct/100)) / SUM(qty)
+Keep only (payment_mode, category) groups where:
+  • avg_discount_pct > 10
+  • weighted_avg_price BETWEEN 1000 AND 40000
+-------------------------------------------------------------------------------------- */
+-- Solution:
+SELECT
+  payment_mode,
+  category,
+  AVG(discount_pct) AS avg_discount_pct,
+  SUM(quantity * unit_price * (1 - discount_pct/100)) / SUM(quantity) AS weighted_avg_price
+FROM sales
+WHERE status = 'Completed'
+  AND discount_pct IS NOT NULL
+GROUP BY payment_mode, category
+HAVING AVG(discount_pct) > 10
+   AND (SUM(quantity * unit_price * (1 - discount_pct/100)) / SUM(quantity)) BETWEEN 1000 AND 40000;
+
+
+
+/* =====================================================================================
+Q3) Customer × Category depth (name starts with 'S')
+For each (customer_name, category) where customer_name LIKE 'S%':
+  • total_items     = SUM(quantity)
+  • distinct_products = COUNT(DISTINCT product)
+Keep only groups where:
+  • total_items >= 3
+  • distinct_products >= 2
+Tip: This tests multi-column GROUP BY + DISTINCT + HAVING with multiple conditions.
+-------------------------------------------------------------------------------------- */
+-- Solution:
+SELECT
+  customer_name,
+  category,
+  SUM(quantity)           AS total_items,
+  COUNT(DISTINCT product) AS distinct_products
+FROM sales
+WHERE customer_name LIKE 'S%'
+GROUP BY customer_name, category
+HAVING SUM(quantity) >= 3
+   AND COUNT(DISTINCT product) >= 2;
+
+
+
+/* =====================================================================================
+Q4) Product × Region net revenue screen (February 2025, excluding Cancelled)
+Consider only rows in Feb-2025 and status IN ('Completed','Pending'):
+  • net_revenue = SUM(qty * price * (1 - IFNULL(discount_pct,0)/100))
+Keep only (product, region) groups where:
+  • net_revenue > 25000
+  • AND SUM(quantity) >= 3
+-------------------------------------------------------------------------------------- */
+-- Solution:
+SELECT
+  product,
+  region,
+  SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) AS net_revenue,
+  SUM(quantity)                                                 AS total_qty
+FROM sales
+WHERE sale_date BETWEEN '2025-02-01' AND '2025-02-28'
+  AND status IN ('Completed','Pending')
+GROUP BY product, region
+HAVING SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) > 25000
+   AND SUM(quantity) >= 3;
+
+
+
+/* =====================================================================================
+Q5) Day × Status mix quality gate
+For each (sale_date, status):
+  • categories_sold  = COUNT(DISTINCT category)
+  • net_revenue      = SUM(qty * price * (1 - IFNULL(discount_pct,0)/100))
+  • total_items      = SUM(quantity)
+Keep only groups where:
+  • categories_sold >= 2
+  • total_items     >= 4
+  • net_revenue BETWEEN 8000 AND 120000
+-------------------------------------------------------------------------------------- */
+-- Solution:
+SELECT
+  sale_date,
+  status,
+  COUNT(DISTINCT category) AS categories_sold,
+  SUM(quantity)            AS total_items,
+  SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) AS net_revenue
+FROM sales
+GROUP BY sale_date, status
+HAVING COUNT(DISTINCT category) >= 2
+   AND SUM(quantity) >= 4
+   AND SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) BETWEEN 8000 AND 120000;
+
+
+
+
+
