@@ -1,0 +1,342 @@
+
+################################################# PREPARE DATA ###########################################################
+
+-- Clean start (safe to re-run)
+DROP DATABASE IF EXISTS sql_practice_filters;
+CREATE DATABASE sql_practice_filters CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+USE sql_practice_filters;
+
+-- =============================================================================
+-- ORDER BY PRACTICE TABLE (single-table only)
+-- Scope for exercises: SELECT, WHERE (filter), GROUP BY, ORDER BY   (nothing else)
+-- Designed to cover: ASC/DESC, multi-column ordering, NULL behavior, ties,
+--                    text vs numeric vs date/datetime, enums, expressions.
+-- =============================================================================
+
+DROP TABLE IF EXISTS orders_play;
+
+CREATE TABLE orders_play (
+  order_id       INT PRIMARY KEY,
+  customer_name  VARCHAR(100) NOT NULL,            -- text ordering (collation-aware)
+  city           VARCHAR(50)  NOT NULL,
+  region         ENUM('North','South','East','West','Central') NOT NULL,
+  product        VARCHAR(100) NOT NULL,
+  category       ENUM('Electronics','Clothing','Grocery','Books','Sports','Home') NOT NULL,
+  quantity       INT NOT NULL,                     -- numeric ordering
+  unit_price     DECIMAL(10,2) NOT NULL,           -- numeric ordering
+  discount_pct   DECIMAL(5,2) NULL,                -- NULLs for ORDER BY tests
+  order_date     DATE NOT NULL,                    -- date ordering (month/day)
+  delivered_at   DATETIME NULL,                    -- datetime ordering + NULLs
+  status         ENUM('Placed','Processing','Shipped','Delivered','Cancelled','Returned') NOT NULL,
+  payment_mode   ENUM('Card','UPI','Cash','NetBanking','Wallet') NOT NULL,
+  priority       TINYINT NULL,                     -- 1 (low) → 5 (high); some NULLs
+  notes          TEXT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 20 diverse rows:
+--  - Repeated values to demonstrate tie-breaking
+--  - NULLs in discount_pct, delivered_at, priority
+--  - Mixed dates across Jan–Feb 2025
+--  - Values that let you order by expressions like (quantity*unit_price*(1-IFNULL(discount_pct,0)/100))
+
+INSERT INTO orders_play
+(order_id, customer_name, city, region, product, category, quantity, unit_price, discount_pct, order_date, delivered_at, status, payment_mode, priority, notes)
+VALUES
+(1001, 'Amit Sharma',     'Mumbai',     'West',    'iPhone 13',          'Electronics',  1, 69999.00, 10.00, '2025-01-05', '2025-01-08 10:15:00', 'Delivered',  'Card',        5,  NULL),
+(1002, 'sara ali',        'Delhi',      'North',   'Yoga Mat - 6mm',     'Sports',       3,    999.00,  5.00, '2025-01-06',  NULL,                 'Processing', 'UPI',         3,  'lowercase name for collation check'),
+(1003, 'Ravi Kumar',      'Pune',       'West',    'Bluetooth Speaker',  'Electronics',  2,   2999.00,  NULL, '2025-01-08', '2025-01-10 18:05:00', 'Delivered',  'Wallet',      2,  NULL),
+(1004, 'Neha Verma',      'Lucknow',    'North',   'Cricket Bat',        'Sports',       1,   1999.00,  NULL, '2025-01-10',  NULL,                 'Shipped',    'Cash',        4,  NULL),
+(1005, 'VIJAY IYER',      'Chennai',    'South',   'Cookbook',           'Books',        4,    499.00,  NULL, '2025-01-12', '2025-01-15 09:20:00', 'Delivered',  'NetBanking',  1,  'UPPERCASE name'),
+(1006, 'Arjun Mehta',     'Jaipur',     'West',    'LED TV 43"',         'Electronics',  1,  24999.00, 15.00, '2025-01-14', '2025-01-16 21:40:00', 'Delivered',  'Card',        NULL, 'NULL priority'),
+(1007, 'Sanya Roy',       'Kolkata',    'East',    'Tennis Racket',      'Sports',       1,   8499.00, 20.00, '2025-01-16',  NULL,                 'Pending',    'Card',        2,  NULL),
+(1008, 'Kunal Joshi',     'Nagpur',     'West',    'Kindle Paperwhite',  'Electronics',  1,  12999.00,  NULL, '2025-01-18', '2025-01-20 12:00:00', 'Delivered',  'UPI',         5,  NULL),
+(1009, 'Meera Das',       'Delhi',      'North',   'T-Shirt',            'Clothing',     5,    799.00, 10.00, '2025-01-20',  NULL,                 'Processing', 'Cash',        3,  'bulk'),
+(1010, 'Sameer Singh',    'Mumbai',     'West',    'Shoes',              'Clothing',     2,   2999.00,  5.00, '2025-01-22',  NULL,                 'Cancelled',  'Wallet',      4,  NULL),
+(1011, 'Sunita Kale',     'Nashik',     'West',    'Data Engg Book',     'Books',        1,    799.00,  NULL, '2025-01-25', '2025-01-27 14:30:00', 'Delivered',  'Card',        2,  NULL),
+(1012, 'Saurabh C',       'Jaipur',     'West',    'Rice Bag 10kg',      'Grocery',      2,    599.00,  NULL, '2025-01-26',  NULL,                 'Placed',     'NetBanking',  2,  NULL),
+(1013, 'Anita Rao',       'Hyderabad',  'South',   'Jacket',             'Clothing',     1,   2499.00,  NULL, '2025-01-28', '2025-01-31 10:10:00', 'Delivered',  'UPI',         NULL, 'NULL priority'),
+(1014, 'Deepak Verma',    'Indore',     'West',    'Football',           'Sports',       2,   1499.00, 10.00, '2025-02-01',  NULL,                 'Pending',    'Card',        1,  NULL),
+(1015, 'Gita Menon',      'Kochi',      'South',   'Laptop',             'Electronics',  1,  55999.00, 25.00, '2025-02-03', '2025-02-05 11:11:11', 'Delivered',  'Card',        5,  NULL),
+(1016, 'Harsh Kapoor',    'Delhi',      'North',   'Notebook Pack',      'Books',        6,     99.00,  NULL, '2025-02-05',  NULL,                 'Placed',     'Wallet',      3,  NULL),
+(1017, 'Ishita Saxena',   'Bhopal',     'Central', 'Saree',              'Clothing',     1,   1999.00,  NULL, '2025-02-07',  NULL,                 'Returned',   'Cash',        4,  NULL),
+(1018, 'Jay Mishra',      'Surat',      'West',    'Protein Powder',     'Grocery',      1,   2999.00,  5.00, '2025-02-09', '2025-02-11 19:45:00', 'Delivered',  'UPI',         2,  NULL),
+(1019, 'Kabir Khanna',    'Noida',      'North',   'Smartwatch',         'Electronics',  1,   9999.00,  NULL, '2025-02-10',  NULL,                 'Processing', 'Card',        1,  NULL),
+(1020, 'Priya Singh',     'Chennai',    'South',   'Bluetooth Speaker',  'Electronics',  2,   2999.00,  NULL, '2025-02-12', '2025-02-14 16:20:00', 'Delivered',  'NetBanking',  5,  'duplicate price to test tie-breaks');
+
+
+
+
+########################################################################### SECTION 1 : ABSOLUTE BASICS ################################################################################
+
+-- Use your practice DB
+USE sql_practice_filters;
+
+-- =============================================================================
+-- 10 PRACTICE EXERCISES on orders_play (FOUNDATIONS: ORDER BY, SELECT, WHERE, GROUP BY)
+-- NOTE: Single-table only (orders_play). No JOINs or subqueries.
+-- =============================================================================
+
+
+/* ---------------------------------------------------------------------------
+Exercise 1 — ORDER BY (single column, ascending)
+List all rows ordered by unit_price (lowest to highest).
+--------------------------------------------------------------------------- */
+SELECT order_id, product, unit_price
+FROM orders_play
+ORDER BY unit_price ASC;
+
+
+/* ---------------------------------------------------------------------------
+Exercise 2 — ORDER BY (date, descending)
+Show order_id, customer_name, order_date ordered by newest first.
+--------------------------------------------------------------------------- */
+SELECT order_id, customer_name, order_date
+FROM orders_play
+ORDER BY order_date DESC;
+
+
+/* ---------------------------------------------------------------------------
+Exercise 3 — ORDER BY (multi-column tie-break)
+Order by category (A→Z), and within each category by unit_price (high→low).
+--------------------------------------------------------------------------- */
+SELECT order_id, category, product, unit_price
+FROM orders_play
+ORDER BY category ASC, unit_price DESC;
+
+
+/* ---------------------------------------------------------------------------
+Exercise 4 — ORDER BY (expression + NULL handling)
+Order by computed NET AMOUNT = quantity*unit_price*(1 - IFNULL(discount_pct,0)/100),
+highest first. Show the computed value.
+--------------------------------------------------------------------------- */
+SELECT
+  order_id, product, quantity, unit_price, discount_pct,
+  (quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) AS net_amount
+FROM orders_play
+ORDER BY (quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) DESC;
+
+
+
+/* ---------------------------------------------------------------------------
+Exercise 5 — SELECT + WHERE + ORDER BY
+Delivered orders only, ordered by delivered_at (earliest first). Show key cols.
+--------------------------------------------------------------------------- */
+SELECT order_id, customer_name, status, delivered_at
+FROM orders_play
+WHERE status = 'Delivered'
+ORDER BY delivered_at ASC;
+
+
+/* ---------------------------------------------------------------------------
+Exercise 6 — SELECT + WHERE (NULL check) + ORDER BY (multi-column)
+Rows with NO discount (discount_pct IS NULL). Sort by unit_price (high→low),
+then by customer_name (A→Z) to break ties.
+--------------------------------------------------------------------------- */
+SELECT order_id, customer_name, product, unit_price, discount_pct
+FROM orders_play
+WHERE discount_pct IS NULL
+ORDER BY unit_price DESC, customer_name ASC;
+
+
+/* ---------------------------------------------------------------------------
+Exercise 7 — GROUP BY + ORDER BY (aggregate)
+Total quantity sold per category; show categories with their total_qty,
+sorted by total_qty (high→low).
+--------------------------------------------------------------------------- */
+SELECT category, SUM(quantity) AS total_qty
+FROM orders_play
+GROUP BY category
+ORDER BY total_qty DESC;
+
+
+/* ---------------------------------------------------------------------------
+Exercise 8 — WHERE (date/status filter) + GROUP BY (two columns) + ORDER BY
+For Feb-2025 and status IN ('Delivered','Processing'):
+Count rows per (region, status), sort by region (A→Z), then status (A→Z).
+--------------------------------------------------------------------------- */
+SELECT region, status, COUNT(*) AS rows_in_group
+FROM orders_play
+WHERE order_date BETWEEN '2025-02-01' AND '2025-02-28'
+  AND status IN ('Delivered','Processing')
+GROUP BY region, status
+ORDER BY region ASC, status ASC;
+
+
+/* ---------------------------------------------------------------------------
+Exercise 9 — WHERE + GROUP BY + HAVING + ORDER BY (expression)
+For status IN ('Delivered','Processing'):
+Per customer, compute net_revenue = SUM(qty*price*(1 - IFNULL(discount_pct,0)/100)).
+Keep customers with total_qty >= 2, order by net_revenue (high→low).
+--------------------------------------------------------------------------- */
+SELECT
+  customer_name,
+  SUM(quantity) AS total_qty,
+  SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) AS net_revenue
+FROM orders_play
+WHERE status IN ('Delivered','Processing')
+GROUP BY customer_name
+HAVING SUM(quantity) >= 2
+ORDER BY net_revenue DESC;
+
+
+/* ---------------------------------------------------------------------------
+Exercise 10 — GROUP BY (date) + aggregates + ORDER BY (date)
+Per day, show categories_sold (COUNT DISTINCT), total_items (SUM qty).
+Sort chronologically by sale date.
+--------------------------------------------------------------------------- */
+SELECT
+  order_date,
+  COUNT(DISTINCT category) AS categories_sold,
+  SUM(quantity)            AS total_items
+FROM orders_play
+GROUP BY order_date
+ORDER BY order_date ASC;
+
+
+
+####################################################################### SECTION 2 : Advanced Exercises ###########################################################################
+
+
+-- Use your practice DB
+USE sql_practice_filters;
+
+-- =====================================================================================
+-- 5 ADVANCED EXERCISES (STRICT: only SELECT, WHERE, GROUP BY, HAVING, ORDER BY)
+-- Table: orders_play
+-- Notes:
+--  - Uses arithmetic/boolean expressions and IFNULL() only (no CASE, no JOINs, no subqueries).
+--  - In MySQL, (condition) evaluates to 1 (true) or 0 (false), which we multiply in aggregates.
+-- =====================================================================================
+
+
+/* -------------------------------------------------------------------------------------
+Exercise 1 — Advanced ordering on computed metrics (multi-level tie-breaks)
+Goal:
+  • Consider rows with status IN ('Delivered','Processing').
+  • Compute net_amount = quantity*unit_price*(1 - IFNULL(discount_pct,0)/100).
+  • Sort by net_amount DESC, then COALESCE-like effect via IFNULL(priority,0) DESC,
+    then order_date ASC.
+------------------------------------------------------------------------------------- */
+SELECT
+  order_id, product, status, quantity, unit_price, discount_pct, priority, order_date,
+  (quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) AS net_amount
+FROM orders_play
+WHERE status IN ('Delivered','Processing')
+GROUP BY order_id, product, status, quantity, unit_price, discount_pct, priority, order_date
+ORDER BY
+  (quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) DESC,
+  IFNULL(priority, 0) DESC,
+  order_date ASC;
+
+
+
+/* -------------------------------------------------------------------------------------
+Exercise 2 — Region × Category quality gate with multiple HAVING conditions
+Goal (multi-column GROUP BY):
+  • Keep (region, category) groups where:
+      - discounted_rows >= 2          (COUNT(discount_pct) counts NOT NULL)
+      - total_qty BETWEEN 3 AND 10
+      - avg_price BETWEEN 1,000 AND 40,000
+  • Order by net_revenue DESC, then region ASC, category ASC.
+------------------------------------------------------------------------------------- */
+SELECT
+  region,
+  category,
+  COUNT(*)                                        AS rows_in_group,
+  COUNT(discount_pct)                             AS discounted_rows,
+  SUM(quantity)                                   AS total_qty,
+  AVG(unit_price)                                 AS avg_price,
+  SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) AS net_revenue
+FROM orders_play
+GROUP BY region, category
+HAVING
+  COUNT(discount_pct) >= 2
+  AND SUM(quantity) BETWEEN 3 AND 10
+  AND AVG(unit_price) BETWEEN 1000 AND 40000
+ORDER BY net_revenue DESC, region ASC, category ASC;
+
+
+
+/* -------------------------------------------------------------------------------------
+Exercise 3 — Customer performance window (date + status filters) with strict thresholds
+Goal:
+  • Focus on Feb-2025 AND status IN ('Delivered','Processing').
+  • For each customer: total_items, distinct_products, avg_discount_pct (NULLs ignored).
+  • Keep customers meeting ALL:
+      - total_items >= 3
+      - distinct_products >= 2
+      - IFNULL(avg_discount_pct,0) >= 10
+  • Order by total_items DESC, then distinct_products DESC, then customer_name ASC.
+------------------------------------------------------------------------------------- */
+SELECT
+  customer_name,
+  SUM(quantity)                           AS total_items,
+  COUNT(DISTINCT product)                 AS distinct_products,
+  AVG(discount_pct)                       AS avg_discount_pct
+FROM orders_play
+WHERE order_date BETWEEN '2025-02-01' AND '2025-02-28'
+  AND status IN ('Delivered','Processing')
+GROUP BY customer_name
+HAVING
+  SUM(quantity) >= 3
+  AND COUNT(DISTINCT product) >= 2
+  AND IFNULL(AVG(discount_pct), 0) >= 10
+ORDER BY total_items DESC, distinct_products DESC, customer_name ASC;
+
+
+
+/* -------------------------------------------------------------------------------------
+Exercise 4 — Product readiness without CASE (boolean-multiplied aggregates)
+Goal:
+  • For each product, compute:
+      - pending_qty   = SUM( (status IN ('Processing','Placed','Pending')) * quantity )
+      - completed_qty = SUM( (status = 'Delivered') * quantity )
+  • Keep products where pending_qty >= completed_qty AND completed_qty >= 1.
+  • Order by (pending_qty - completed_qty) DESC, then completed_qty DESC.
+------------------------------------------------------------------------------------- */
+SELECT
+  product,
+  SUM( (status IN ('Processing','Placed','Pending')) * quantity ) AS pending_qty,
+  SUM( (status = 'Delivered') * quantity )                        AS completed_qty
+FROM orders_play
+GROUP BY product
+HAVING
+  SUM( (status IN ('Processing','Placed','Pending')) * quantity )
+  >= SUM( (status = 'Delivered') * quantity )
+  AND SUM( (status = 'Delivered') * quantity ) >= 1
+ORDER BY (pending_qty - completed_qty) DESC, completed_qty DESC;
+
+
+
+/* -------------------------------------------------------------------------------------
+Exercise 5 — Day × Region operational snapshot with strict thresholds
+Goal:
+  • For each (order_date, region), show:
+      - categories_sold  = COUNT(DISTINCT category)
+      - total_items      = SUM(quantity)
+      - net_revenue      = SUM(quantity*unit_price*(1 - IFNULL(discount_pct,0)/100))
+  • Keep only groups where:
+      - categories_sold >= 2
+      - total_items     >= 4
+      - net_revenue BETWEEN 8,000 AND 120,000
+  • Order by order_date ASC, then net_revenue DESC.
+------------------------------------------------------------------------------------- */
+SELECT
+  order_date,
+  region,
+  COUNT(DISTINCT category) AS categories_sold,
+  SUM(quantity)            AS total_items,
+  SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) AS net_revenue
+FROM orders_play
+GROUP BY order_date, region
+HAVING
+  COUNT(DISTINCT category) >= 2
+  AND SUM(quantity) >= 4
+  AND SUM(quantity * unit_price * (1 - IFNULL(discount_pct,0)/100)) BETWEEN 8000 AND 120000
+ORDER BY order_date ASC, net_revenue DESC;
+
+
+
+
+
+
