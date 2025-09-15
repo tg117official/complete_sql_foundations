@@ -1,0 +1,70 @@
+
+################################################# PREPARE DATA ###########################################################
+
+-- Use your existing practice DB
+USE sql_practice_filters;
+
+-- =============================================================================
+-- ORDER BY PRACTICE TABLE (single-table only)
+-- Scope for exercises: SELECT, WHERE (filter), GROUP BY, ORDER BY   (nothing else)
+-- Designed to cover: ASC/DESC, multi-column ordering, NULL behavior, ties,
+--                    text vs numeric vs date/datetime, enums, expressions.
+-- =============================================================================
+
+DROP TABLE IF EXISTS orders_play;
+
+CREATE TABLE orders_play (
+  order_id       INT PRIMARY KEY,
+  customer_name  VARCHAR(100) NOT NULL,            -- text ordering (collation-aware)
+  city           VARCHAR(50)  NOT NULL,
+  region         ENUM('North','South','East','West','Central') NOT NULL,
+  product        VARCHAR(100) NOT NULL,
+  category       ENUM('Electronics','Clothing','Grocery','Books','Sports','Home') NOT NULL,
+  quantity       INT NOT NULL,                     -- numeric ordering
+  unit_price     DECIMAL(10,2) NOT NULL,           -- numeric ordering
+  discount_pct   DECIMAL(5,2) NULL,                -- NULLs for ORDER BY tests
+  order_date     DATE NOT NULL,                    -- date ordering (month/day)
+  delivered_at   DATETIME NULL,                    -- datetime ordering + NULLs
+  status         ENUM('Placed','Processing','Shipped','Delivered','Cancelled','Returned') NOT NULL,
+  payment_mode   ENUM('Card','UPI','Cash','NetBanking','Wallet') NOT NULL,
+  priority       TINYINT NULL,                     -- 1 (low) → 5 (high); some NULLs
+  notes          TEXT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 20 diverse rows:
+--  - Repeated values to demonstrate tie-breaking
+--  - NULLs in discount_pct, delivered_at, priority
+--  - Mixed dates across Jan–Feb 2025
+--  - Values that let you order by expressions like (quantity*unit_price*(1-IFNULL(discount_pct,0)/100))
+
+INSERT INTO orders_play
+(order_id, customer_name, city, region, product, category, quantity, unit_price, discount_pct, order_date, delivered_at, status, payment_mode, priority, notes)
+VALUES
+(1001, 'Amit Sharma',     'Mumbai',     'West',    'iPhone 13',          'Electronics',  1, 69999.00, 10.00, '2025-01-05', '2025-01-08 10:15:00', 'Delivered',  'Card',        5,  NULL),
+(1002, 'sara ali',        'Delhi',      'North',   'Yoga Mat - 6mm',     'Sports',       3,    999.00,  5.00, '2025-01-06',  NULL,                 'Processing', 'UPI',         3,  'lowercase name for collation check'),
+(1003, 'Ravi Kumar',      'Pune',       'West',    'Bluetooth Speaker',  'Electronics',  2,   2999.00,  NULL, '2025-01-08', '2025-01-10 18:05:00', 'Delivered',  'Wallet',      2,  NULL),
+(1004, 'Neha Verma',      'Lucknow',    'North',   'Cricket Bat',        'Sports',       1,   1999.00,  NULL, '2025-01-10',  NULL,                 'Shipped',    'Cash',        4,  NULL),
+(1005, 'VIJAY IYER',      'Chennai',    'South',   'Cookbook',           'Books',        4,    499.00,  NULL, '2025-01-12', '2025-01-15 09:20:00', 'Delivered',  'NetBanking',  1,  'UPPERCASE name'),
+(1006, 'Arjun Mehta',     'Jaipur',     'West',    'LED TV 43"',         'Electronics',  1,  24999.00, 15.00, '2025-01-14', '2025-01-16 21:40:00', 'Delivered',  'Card',        NULL, 'NULL priority'),
+(1007, 'Sanya Roy',       'Kolkata',    'East',    'Tennis Racket',      'Sports',       1,   8499.00, 20.00, '2025-01-16',  NULL,                 'Pending',    'Card',        2,  NULL),
+(1008, 'Kunal Joshi',     'Nagpur',     'West',    'Kindle Paperwhite',  'Electronics',  1,  12999.00,  NULL, '2025-01-18', '2025-01-20 12:00:00', 'Delivered',  'UPI',         5,  NULL),
+(1009, 'Meera Das',       'Delhi',      'North',   'T-Shirt',            'Clothing',     5,    799.00, 10.00, '2025-01-20',  NULL,                 'Processing', 'Cash',        3,  'bulk'),
+(1010, 'Sameer Singh',    'Mumbai',     'West',    'Shoes',              'Clothing',     2,   2999.00,  5.00, '2025-01-22',  NULL,                 'Cancelled',  'Wallet',      4,  NULL),
+(1011, 'Sunita Kale',     'Nashik',     'West',    'Data Engg Book',     'Books',        1,    799.00,  NULL, '2025-01-25', '2025-01-27 14:30:00', 'Delivered',  'Card',        2,  NULL),
+(1012, 'Saurabh C',       'Jaipur',     'West',    'Rice Bag 10kg',      'Grocery',      2,    599.00,  NULL, '2025-01-26',  NULL,                 'Placed',     'NetBanking',  2,  NULL),
+(1013, 'Anita Rao',       'Hyderabad',  'South',   'Jacket',             'Clothing',     1,   2499.00,  NULL, '2025-01-28', '2025-01-31 10:10:00', 'Delivered',  'UPI',         NULL, 'NULL priority'),
+(1014, 'Deepak Verma',    'Indore',     'West',    'Football',           'Sports',       2,   1499.00, 10.00, '2025-02-01',  NULL,                 'Pending',    'Card',        1,  NULL),
+(1015, 'Gita Menon',      'Kochi',      'South',   'Laptop',             'Electronics',  1,  55999.00, 25.00, '2025-02-03', '2025-02-05 11:11:11', 'Delivered',  'Card',        5,  NULL),
+(1016, 'Harsh Kapoor',    'Delhi',      'North',   'Notebook Pack',      'Books',        6,     99.00,  NULL, '2025-02-05',  NULL,                 'Placed',     'Wallet',      3,  NULL),
+(1017, 'Ishita Saxena',   'Bhopal',     'Central', 'Saree',              'Clothing',     1,   1999.00,  NULL, '2025-02-07',  NULL,                 'Returned',   'Cash',        4,  NULL),
+(1018, 'Jay Mishra',      'Surat',      'West',    'Protein Powder',     'Grocery',      1,   2999.00,  5.00, '2025-02-09', '2025-02-11 19:45:00', 'Delivered',  'UPI',         2,  NULL),
+(1019, 'Kabir Khanna',    'Noida',      'North',   'Smartwatch',         'Electronics',  1,   9999.00,  NULL, '2025-02-10',  NULL,                 'Processing', 'Card',        1,  NULL),
+(1020, 'Priya Singh',     'Chennai',    'South',   'Bluetooth Speaker',  'Electronics',  2,   2999.00,  NULL, '2025-02-12', '2025-02-14 16:20:00', 'Delivered',  'NetBanking',  5,  'duplicate price to test tie-breaks');
+
+-- Notes for building ORDER BY exercises:
+--  * Text/case: customer_name has mixed case to show collation behavior.
+--  * NULLs: discount_pct, delivered_at, priority contain NULLs for ASC/DESC behavior.
+--  * Dates: order_date vs delivered_at allow ordering on DATE vs DATETIME.
+--  * Ties: multiple rows share unit_price=2999, quantity=1/2 to practice tie-breakers.
+--  * Enums: region, status, category, payment_mode for lexical ordering demonstrations.
+--  * Expressions: Practice ORDER BY (quantity*unit_price) or net calc with IFNULL(discount_pct,0).
