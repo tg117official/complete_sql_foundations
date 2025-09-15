@@ -27,7 +27,7 @@ CREATE TABLE orders_play (
   discount_pct   DECIMAL(5,2) NULL,                -- NULLs for ORDER BY tests
   order_date     DATE NOT NULL,                    -- date ordering (month/day)
   delivered_at   DATETIME NULL,                    -- datetime ordering + NULLs
-  status         ENUM('Placed','Processing','Shipped','Delivered','Cancelled','Returned') NOT NULL,
+  status         ENUM('Placed','Processing','Shipped','Delivered','Cancelled','Returned','Pending') NOT NULL,
   payment_mode   ENUM('Card','UPI','Cash','NetBanking','Wallet') NOT NULL,
   priority       TINYINT NULL,                     -- 1 (low) → 5 (high); some NULLs
   notes          TEXT NULL
