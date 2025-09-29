@@ -1,0 +1,266 @@
+
+######################################################## PREPARE ############################################################
+
+
+-- Use your practice DB
+USE sql_practice_filters;
+
+-- =====================================================================================
+-- Clean, complete DDL + data for CASE-ready practice table
+-- Note: Includes 'Pending' in the status ENUM to fix the previous
+--       "Data truncated for column 'status'" error you saw.
+-- =====================================================================================
+
+DROP TABLE IF EXISTS order_cases;
+
+CREATE TABLE order_cases (
+  order_id        INT PRIMARY KEY,
+  order_date      DATE NOT NULL,
+  customer_id     INT NOT NULL,
+  customer_name   VARCHAR(100) NOT NULL,
+  region          ENUM('North','South','East','West','Central') NOT NULL,
+  city            VARCHAR(60) NOT NULL,
+  channel         ENUM('Web','Mobile','Store','Marketplace') NOT NULL,
+  product         VARCHAR(100) NOT NULL,
+  category        ENUM('Electronics','Clothing','Grocery','Books','Sports','Home') NOT NULL,
+  quantity        INT NOT NULL,
+  unit_price      DECIMAL(10,2) NOT NULL,
+  discount_pct    DECIMAL(5,2) NULL,
+  coupon_code     VARCHAR(20) NULL,
+  payment_mode    ENUM('Card','UPI','Cash','NetBanking','Wallet') NOT NULL,
+  status          ENUM('Placed','Processing','Shipped','Delivered','Cancelled','Returned','Pending') NOT NULL,
+  shipped_at      DATETIME NULL,
+  delivered_at    DATETIME NULL,
+  return_reason   VARCHAR(100) NULL,
+  shipping_method ENUM('Standard','Express','SameDay') NOT NULL,
+  loyalty_tier    ENUM('Bronze','Silver','Gold','Platinum') NULL,
+  rating          TINYINT NULL,
+  gift_wrap       TINYINT(1) NOT NULL DEFAULT 0,
+  notes           TEXT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =====================================================================================
+-- Data: 42 rows (Jan–Feb 2025). Crafted for SELECT / WHERE / GROUP BY / ORDER BY / CASE.
+-- =====================================================================================
+
+INSERT INTO order_cases
+(order_id, order_date, customer_id, customer_name, region, city, channel, product, category, quantity, unit_price, discount_pct, coupon_code, payment_mode, status, shipped_at, delivered_at, return_reason, shipping_method, loyalty_tier, rating, gift_wrap, notes)
+VALUES
+-- Jan 1–8
+(2001,'2025-01-01',101,'Amit Sharma','West','Mumbai','Web','iPhone 13','Electronics',1,69999.00,10.00,'NEW10','Card','Delivered','2025-01-02 10:15:00','2025-01-04 12:30:00',NULL,'Express','Gold',5,1,NULL),
+(2002,'2025-01-02',102,'Priya Singh','South','Chennai','Mobile','Bluetooth Speaker','Electronics',2,2999.00,NULL,NULL,'UPI','Processing',NULL,NULL,NULL,'Standard','Silver',NULL,0,'Waiting for pickup'),
+(2003,'2025-01-03',103,'Ravi Kumar','West','Pune','Store','Yoga Mat - 6mm','Sports',3,999.00,5.00,'FIT5','Cash','Delivered','2025-01-04 09:00:00','2025-01-05 18:05:00',NULL,'Standard','Bronze',4,0,NULL),
+(2004,'2025-01-04',104,'Neha Verma','North','Lucknow','Web','Cricket Bat','Sports',1,1999.00,NULL,NULL,'Cash','Shipped','2025-01-05 15:20:00',NULL,NULL,'Express','Silver',NULL,0,NULL),
+(2005,'2025-01-05',105,'Vijay Iyer','South','Chennai','Web','Cookbook: Indian Veg','Books',2,499.00,NULL,NULL,'NetBanking','Delivered','2025-01-06 08:25:00','2025-01-08 09:20:00',NULL,'Standard','Bronze',3,0,'Gift for friend'),
+(2006,'2025-01-05',106,'Sara Ali','South','Kochi','Mobile','LED TV 43"','Electronics',1,24999.00,15.00,'FEST15','Card','Delivered','2025-01-06 20:40:00','2025-01-08 21:40:00',NULL,'Express','Platinum',5,0,NULL),
+(2007,'2025-01-06',107,'Arjun Mehta','West','Jaipur','Marketplace','Organic Almonds 1kg','Grocery',5,1099.00,NULL,NULL,'UPI','Delivered','2025-01-07 11:10:00','2025-01-09 10:10:00',NULL,'Standard','Silver',4,0,NULL),
+(2008,'2025-01-07',108,'Sanya Roy','East','Kolkata','Web','Tennis Racket Pro','Sports',1,8499.00,20.00,'SPORT20','Card','Pending',NULL,NULL,NULL,'Express','Gold',NULL,0,NULL),
+
+-- Jan 9–16
+(2009,'2025-01-08',109,'Kunal Joshi','West','Nagpur','Mobile','Kindle Paperwhite','Electronics',1,12999.00,NULL,NULL,'UPI','Delivered','2025-01-09 14:00:00','2025-01-11 12:00:00',NULL,'Standard','Silver',5,0,NULL),
+(2010,'2025-01-09',110,'Meera Das','North','Delhi','Store','Premium T-Shirt','Clothing',5,799.00,10.00,'NEW10','Cash','Processing',NULL,NULL,NULL,'Standard','Bronze',NULL,0,'Bulk order'),
+(2011,'2025-01-10',111,'Sameer Singh','West','Mumbai','Mobile','Running Shoes','Clothing',2,2999.00,5.00,'FIT5','Wallet','Cancelled',NULL,NULL,NULL,'Standard','Silver',NULL,0,'User cancelled'),
+(2012,'2025-01-11',112,'Sunita Kale','West','Nashik','Web','Data Engineering 101','Books',1,799.00,NULL,NULL,'Card','Delivered','2025-01-12 10:10:00','2025-01-13 14:30:00',NULL,'Standard','Gold',4,0,NULL),
+(2013,'2025-01-12',113,'Saurabh Choudhary','West','Jaipur','Web','Rice Bag 10kg','Grocery',2,599.00,NULL,NULL,'NetBanking','Placed',NULL,NULL,NULL,'Standard','Bronze',NULL,0,NULL),
+(2014,'2025-01-13',114,'Anita Rao','South','Hyderabad','Mobile','Winter Jacket','Clothing',1,2499.00,NULL,NULL,'UPI','Returned','2025-01-14 09:00:00','2025-01-16 10:10:00','Size issue','Express','Silver',2,0,NULL),
+(2015,'2025-01-14',115,'Deepak Verma','West','Indore','Marketplace','Football','Sports',2,1499.00,10.00,'SPORT10','Card','Pending',NULL,NULL,NULL,'Standard','Bronze',NULL,0,NULL),
+(2016,'2025-01-15',116,'Gita Menon','South','Kochi','Web','Laptop 15-inch','Electronics',1,55999.00,25.00,'FEST25','Card','Delivered','2025-01-16 10:59:00','2025-01-18 11:11:11',NULL,'Express','Platinum',5,1,NULL),
+
+-- Jan 17–24
+(2017,'2025-01-16',117,'Harsh Kapoor','North','Delhi','Mobile','Notebook Pack (10)','Books',6,99.00,NULL,NULL,'Wallet','Placed',NULL,NULL,NULL,'Standard','Silver',NULL,0,NULL),
+(2018,'2025-01-17',118,'Ishita Saxena','Central','Bhopal','Store','Saree - Silk','Clothing',1,1999.00,NULL,NULL,'Cash','Returned','2025-01-18 13:30:00','2025-01-20 16:00:00','Color mismatch','Standard','Gold',2,0,NULL),
+(2019,'2025-01-18',119,'Jay Mishra','West','Surat','Web','Protein Powder 1kg','Grocery',1,2999.00,5.00,'NEW5','UPI','Delivered','2025-01-19 17:45:00','2025-01-21 19:45:00',NULL,'Express','Silver',4,0,NULL),
+(2020,'2025-01-19',120,'Kabir Khanna','North','Noida','Mobile','Smartwatch Pro','Electronics',1,9999.00,NULL,NULL,'Card','Processing',NULL,NULL,NULL,'SameDay','Gold',NULL,1,'Gift wrap'),
+(2021,'2025-01-20',121,'Pooja Iyer','West','Mumbai','Marketplace','Mixer Grinder','Home',1,4499.00,10.00,'HOME10','UPI','Delivered','2025-01-21 10:10:00','2025-01-22 18:30:00',NULL,'Standard','Bronze',4,0,NULL),
+(2022,'2025-01-21',122,'Rahul Gupta','North','Delhi','Web','E-Reader Cover','Home',2,699.00,NULL,NULL,'Cash','Shipped','2025-01-22 12:05:00',NULL,NULL,'Standard','Silver',NULL,0,NULL),
+(2023,'2025-01-22',123,'Kiran Desai','East','Kolkata','Store','Desk Lamp','Home',1,1599.00,15.00,'HOME15','Card','Delivered','2025-01-23 08:20:00','2025-01-25 12:00:00',NULL,'Standard','Gold',5,0,NULL),
+(2024,'2025-01-23',124,'Sneha Patil','West','Pune','Mobile','Gaming Mouse','Electronics',1,3499.00,NULL,NULL,'UPI','Delivered','2025-01-24 09:00:00','2025-01-26 10:00:00',NULL,'Express','Silver',5,0,NULL),
+
+-- Jan 25–Feb 1
+(2025,'2025-01-24',125,'Aarav Mehta','West','Mumbai','Web','Air Fryer','Home',1,7999.00,20.00,'HOME20','NetBanking','Delivered','2025-01-25 07:50:00','2025-01-27 09:20:00',NULL,'Express','Gold',5,1,NULL),
+(2026,'2025-01-25',126,'Diya Patel','West','Ahmedabad','Mobile','Stationery Set','Home',3,299.00,NULL,NULL,'UPI','Processing',NULL,NULL,NULL,'Standard','Bronze',NULL,0,NULL),
+(2027,'2025-01-26',127,'Vikram Rao','North','Delhi','Web','4K Monitor 27"','Electronics',1,22999.00,10.00,'NEW10','Card','Delivered','2025-01-27 12:35:00','2025-01-29 13:40:00',NULL,'Express','Gold',5,0,NULL),
+(2028,'2025-01-27',128,'Anil Kumar','North','Gurugram','Marketplace','Office Chair','Home',1,6999.00,NULL,NULL,'Wallet','Cancelled',NULL,NULL,NULL,'Standard','Silver',NULL,0,'Stock issue'),
+(2029,'2025-01-28',129,'Neeraj Singh','East','Bhubaneswar','Web','Badminton Shuttle Pack','Sports',4,499.00,NULL,NULL,'Card','Delivered','2025-01-29 09:00:00','2025-01-31 11:15:00',NULL,'Standard','Bronze',3,0,NULL),
+(2030,'2025-01-29',130,'Zara Ahmed','West','Thane','Mobile','Smartphone Case','Electronics',2,399.00,5.00,'NEW5','UPI','Shipped','2025-01-30 10:10:00',NULL,NULL,'SameDay','Silver',NULL,1,NULL),
+(2031,'2025-01-30',131,'Yash Thakur','West','Surat','Store','Hiking Backpack','Sports',1,3499.00,NULL,NULL,'Cash','Delivered','2025-01-31 08:00:00','2025-02-01 09:00:00',NULL,'Standard','Gold',4,0,NULL),
+(2032,'2025-01-31',132,'Pooja Joshi','North','Noida','Web','Wall Art Frame','Home',2,1299.00,10.00,'HOME10','Card','Delivered','2025-02-01 14:45:00','2025-02-03 16:30:00',NULL,'Express','Silver',5,0,NULL),
+
+-- Feb 2–Feb 12
+(2033,'2025-02-01',133,'Rohan Gupta','North','Delhi','Mobile','Electric Kettle','Home',1,1899.00,NULL,NULL,'UPI','Delivered','2025-02-02 10:20:00','2025-02-04 11:00:00',NULL,'Standard','Bronze',4,0,NULL),
+(2034,'2025-02-02',134,'Meera Iyer','South','Bengaluru','Web','Pressure Cooker','Home',1,2499.00,15.00,'HOME15','NetBanking','Delivered','2025-02-03 09:00:00','2025-02-05 12:45:00',NULL,'Express','Gold',5,0,NULL),
+(2035,'2025-02-03',135,'Kabir Singh','West','Mumbai','Mobile','Graphic Tee','Clothing',3,599.00,NULL,NULL,'UPI','Shipped','2025-02-04 12:05:00',NULL,NULL,'Standard','Silver',NULL,0,NULL),
+(2036,'2025-02-04',136,'Isha Nair','South','Chennai','Store','Face Cream','Grocery',2,349.00,10.00,'NEW10','Cash','Delivered','2025-02-05 13:15:00','2025-02-06 15:25:00',NULL,'Standard','Bronze',4,0,NULL),
+(2037,'2025-02-05',137,'Aman Jain','West','Jaipur','Web','Gaming Keyboard','Electronics',1,4999.00,NULL,NULL,'Card','Processing',NULL,NULL,NULL,'Express','Gold',NULL,0,NULL),
+(2038,'2025-02-06',138,'Ananya Das','East','Kolkata','Mobile','Cookbook: Vegan','Books',1,899.00,5.00,'NEW5','UPI','Delivered','2025-02-07 09:40:00','2025-02-08 11:45:00',NULL,'Standard','Silver',5,0,NULL),
+(2039,'2025-02-08',139,'Harsh Vardhan','West','Indore','Web','Dumbbell Set 10kg','Sports',1,3999.00,10.00,'FIT10','Card','Delivered','2025-02-09 08:30:00','2025-02-10 10:00:00',NULL,'Express','Gold',4,0,NULL),
+(2040,'2025-02-10',140,'Meera Kapoor','North','Delhi','Mobile','Curtain Pair','Home',2,1599.00,NULL,NULL,'Wallet','Placed',NULL,NULL,NULL,'Standard','Silver',NULL,0,NULL),
+(2041,'2025-02-11',141,'Rahul Malhotra','North','Gurugram','Marketplace','Desk Organizer','Home',1,999.00,NULL,NULL,'Card','Delivered','2025-02-12 10:05:00','2025-02-13 13:20:00',NULL,'Standard','Bronze',4,0,NULL),
+(2042,'2025-02-12',142,'Zubin Bhatt','West','Mumbai','Web','Noise-Cancelling Headphones','Electronics',1,7999.00,20.00,'FEST20','Card','Delivered','2025-02-13 11:11:00','2025-02-15 12:12:00',NULL,'Express','Platinum',5,1,'Anniversary gift');
+
+-- Optional quick checks
+-- SELECT COUNT(*) AS rows_inserted FROM order_cases;
+-- SELECT status, COUNT(*) FROM order_cases GROUP BY status;
+-- SELECT region, category, COUNT(*) FROM order_cases GROUP BY region, category;
+
+
+
+
+###################################################################### SECTION 1 ABSOLUTE FOUNDATIONS ####################################################################
+
+-- Use your practice DB
+USE sql_practice_filters;
+
+-- ===============================================================
+-- DEMONSTRATING THE DIFFERENCE BETWEEN WHERE and CASE
+-- ===============================================================
+
+/* ------------------------------------------------------------------
+Exercise 1: WHERE filters rows, CASE labels rows
+---------------------------------------------------------------------
+Task:
+- Use WHERE to keep only Electronics orders.
+- Use CASE to show a label for category type for all rows.
+------------------------------------------------------------------ */
+
+-- Using WHERE: only Electronics rows appear
+SELECT order_id, product, category
+FROM order_cases
+WHERE category = 'Electronics';
+
+-- Using CASE: all rows appear, but get labelled as 'Electronics' or 'Other'
+SELECT order_id, product, category,
+       CASE WHEN category = 'Electronics' THEN 'Electronics' ELSE 'Other' END AS category_label
+FROM order_cases;
+
+
+/* ------------------------------------------------------------------
+Exercise 2: WHERE removes rows, CASE counts conditionally
+---------------------------------------------------------------------
+Task:
+- Count how many Delivered orders vs. all orders.
+------------------------------------------------------------------ */
+
+-- Using WHERE: only counts Delivered rows
+SELECT COUNT(*) AS delivered_orders
+FROM order_cases
+WHERE status = 'Delivered';
+
+-- Using CASE: counts both Delivered and Not Delivered in one query
+SELECT
+  SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) AS delivered_orders,
+  SUM(CASE WHEN status <> 'Delivered' THEN 1 ELSE 0 END) AS not_delivered_orders
+FROM order_cases;
+
+
+-- =====================================================================================
+-- 5 FOUNDATION-LEVEL CASE EXPRESSION EXERCISES (with solutions)
+-- Table: order_cases
+-- Scope: SELECT, WHERE, GROUP BY, ORDER BY, CASE (beginner friendly)
+-- =====================================================================================
+
+
+/* -----------------------------------------------------------------------------
+Exercise 1 — Basic CASE: flag discounted vs non-discounted orders
+Goal:
+  Show a readable flag for each row using CASE on discount_pct.
+----------------------------------------------------------------------------- */
+SELECT
+  order_id,
+  product,
+  discount_pct,
+  CASE
+    WHEN discount_pct IS NULL THEN 'NO_DISCOUNT'
+    WHEN discount_pct = 0     THEN 'NO_DISCOUNT'
+    ELSE 'DISCOUNTED'
+  END AS discount_flag
+FROM order_cases
+ORDER BY order_id ASC;
+
+
+/* -----------------------------------------------------------------------------
+Exercise 2 — Simple CASE on fixed values: pipeline stage from status
+Goal:
+  Map status into OPEN/CLOSED buckets with CASE, then sort by stage then date.
+    OPEN   → Placed, Processing, Shipped
+    CLOSED → Delivered, Cancelled, Returned, Pending
+----------------------------------------------------------------------------- */
+SELECT
+  order_id,
+  status,
+  order_date,
+  CASE status
+    WHEN 'Placed'     THEN 'OPEN'
+    WHEN 'Processing' THEN 'OPEN'
+    WHEN 'Shipped'    THEN 'OPEN'
+    ELSE 'CLOSED'
+  END AS pipeline_stage
+FROM order_cases
+ORDER BY pipeline_stage ASC, order_date ASC;
+
+
+/* -----------------------------------------------------------------------------
+Exercise 3 — CASE for bucketing (easy bands) + GROUP BY the bucket
+Goal:
+  Bucket rows by discount level and count how many rows fall in each bucket.
+    HIGH   ≥ 20%
+    MEDIUM 10%–19.99%
+    LOW    0.01%–9.99%
+    NONE   NULL or 0
+----------------------------------------------------------------------------- */
+SELECT
+  CASE
+    WHEN discount_pct >= 20                        THEN 'HIGH'
+    WHEN discount_pct >= 10 AND discount_pct < 20  THEN 'MEDIUM'
+    WHEN discount_pct >  0  AND discount_pct < 10  THEN 'LOW'
+    ELSE 'NONE'
+  END AS discount_bucket,
+  COUNT(*) AS rows_in_bucket
+FROM order_cases
+GROUP BY
+  CASE
+    WHEN discount_pct >= 20                        THEN 'HIGH'
+    WHEN discount_pct >= 10 AND discount_pct < 20  THEN 'MEDIUM'
+    WHEN discount_pct >  0  AND discount_pct < 10  THEN 'LOW'
+    ELSE 'NONE'
+  END
+ORDER BY rows_in_bucket DESC, discount_bucket ASC;
+
+
+/* -----------------------------------------------------------------------------
+Exercise 4 — CASE inside a calculation (handle NULLs explicitly)
+Goal:
+  Compute net_amount per order using CASE to replace NULL discount with 0.
+  Show only Electronics to keep output short; sort by net_amount high→low.
+  Formula: qty * unit_price * (1 - (CASE WHEN discount_pct IS NULL THEN 0 ELSE discount_pct END)/100)
+----------------------------------------------------------------------------- */
+SELECT
+  order_id,
+  product,
+  quantity,
+  unit_price,
+  discount_pct,
+  quantity * unit_price * (1 - (CASE WHEN discount_pct IS NULL THEN 0 ELSE discount_pct END)/100) AS net_amount
+FROM order_cases
+WHERE category = 'Electronics'
+ORDER BY net_amount DESC;
+
+
+/* -----------------------------------------------------------------------------
+Exercise 5 — Conditional aggregates using CASE (counts by condition)
+Goal:
+  For each sales channel, count:
+    • gift_orders     → gift_wrap = 1
+    • cancelled_orders→ status = 'Cancelled'
+    • open_pipeline   → status IN ('Placed','Processing','Shipped')
+  (Each COUNT is built with SUM(CASE ... THEN 1 ELSE 0 END))
+  Sort by gift_orders high→low.
+----------------------------------------------------------------------------- */
+SELECT
+  channel,
+  SUM(CASE WHEN gift_wrap = 1 THEN 1 ELSE 0 END)                                     AS gift_orders,
+  SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END)                               AS cancelled_orders,
+  SUM(CASE WHEN status IN ('Placed','Processing','Shipped') THEN 1 ELSE 0 END)        AS open_pipeline
+FROM order_cases
+GROUP BY channel
+ORDER BY gift_orders DESC, channel ASC;
