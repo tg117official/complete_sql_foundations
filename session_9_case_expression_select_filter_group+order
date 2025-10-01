@@ -264,3 +264,213 @@ SELECT
 FROM order_cases
 GROUP BY channel
 ORDER BY gift_orders DESC, channel ASC;
+
+
+
+
+#################################################### SECTION 2 : ADVANCED #########################################################
+
+
+
+
+-- Use your practice DB
+USE sql_practice_filters;
+
+-- =====================================================================================
+-- 5 ADVANCED EXERCISES (Table: order_cases)
+-- Scope STRICTLY limited to: SELECT, WHERE, GROUP BY, HAVING, ORDER BY, CASE.
+-- No JOINs, no subqueries, no window functions, no CTEs.
+-- Each exercise includes a brief and a solution.
+-- =====================================================================================
+
+
+/* =====================================================================================
+Exercise 1 — Region × Category revenue screen with CASE-bucket and thresholds
+Brief:
+  • Compute net_revenue per (region, category):
+      net_revenue = SUM(qty * price * (1 - (CASE WHEN discount_pct IS NULL THEN 0 ELSE discount_pct END)/100))
+  • Also produce a CASE bucket:
+      'HIGH'   ≥ 30k, 'MID' 15k–29.99k, 'LOW' < 15k
+  • Keep only groups with total_qty ≥ 3 and bucket <> 'LOW'.
+  • Sort by net_revenue (high→low).
+-------------------------------------------------------------------------------------- */
+SELECT
+  region,
+  category,
+  SUM(quantity) AS total_qty,
+  SUM(quantity * unit_price * (1 - (CASE WHEN discount_pct IS NULL THEN 0 ELSE discount_pct END)/100)) AS net_revenue,
+  CASE
+    WHEN SUM(quantity * unit_price * (1 - (CASE WHEN discount_pct IS NULL THEN 0 ELSE discount_pct END)/100)) >= 30000 THEN 'HIGH'
+    WHEN SUM(quantity * unit_price * (1 - (CASE WHEN discount_pct IS NULL THEN 0 ELSE discount_pct END)/100)) >= 15000 THEN 'MID'
+    ELSE 'LOW'
+  END AS revenue_bucket
+FROM order_cases
+GROUP BY region, category
+HAVING
+  SUM(quantity) >= 3
+  AND
+  CASE
+    WHEN SUM(quantity * unit_price * (1 - (CASE WHEN discount_pct IS NULL THEN 0 ELSE discount_pct END)/100)) >= 30000 THEN 'HIGH'
+    WHEN SUM(quantity * unit_price * (1 - (CASE WHEN discount_pct IS NULL THEN 0 ELSE discount_pct END)/100)) >= 15000 THEN 'MID'
+    ELSE 'LOW'
+  END <> 'LOW'
+ORDER BY net_revenue DESC;
+
+
+
+/* =====================================================================================
+Exercise 2 — Shipping speed mix by channel with CASE-derived ranks
+Brief:
+  • For each channel, count orders by a CASE rank of shipping speed:
+      ship_rank = 3 for 'SameDay', 2 for 'Express', 1 for 'Standard'
+  • Return totals: total_orders, fast_lane (rank>=2), standard_lane (rank=1).
+  • Keep channels with at least 2 fast_lane orders.
+  • Sort by fast_lane (high→low), then channel (A→Z).
+-------------------------------------------------------------------------------------- */
+SELECT
+  channel,
+  COUNT(*) AS total_orders,
+  SUM(CASE WHEN CASE shipping_method WHEN 'SameDay' THEN 3 WHEN 'Express' THEN 2 ELSE 1 END >= 2 THEN 1 ELSE 0 END) AS fast_lane,
+  SUM(CASE WHEN CASE shipping_method WHEN 'SameDay' THEN 3 WHEN 'Express' THEN 2 ELSE 1 END = 1 THEN 1 ELSE 0 END)  AS standard_lane
+FROM order_cases
+GROUP BY channel
+HAVING SUM(CASE WHEN CASE shipping_method WHEN 'SameDay' THEN 3 WHEN 'Express' THEN 2 ELSE 1 END >= 2 THEN 1 ELSE 0 END) >= 2
+ORDER BY fast_lane DESC, channel ASC;
+
+
+
+/* =====================================================================================
+Exercise 3 — Customer quality gate with CASE inside aggregates (Feb 2025 focus)
+Brief:
+  • Consider orders in Feb-2025 only.
+  • For each customer, compute:
+      - total_items = SUM(quantity)
+      - delivered_orders = SUM(CASE WHEN status='Delivered' THEN 1 ELSE 0 END)
+      - cancelled_or_returned = SUM(CASE WHEN status IN ('Cancelled','Returned') THEN 1 ELSE 0 END)
+      - net_revenue on Delivered only (via CASE)
+  • Keep customers with total_items ≥ 3 AND delivered_orders ≥ 2 AND cancelled_or_returned = 0.
+  • Sort by net_revenue (high→low), then customer_name.
+-------------------------------------------------------------------------------------- */
+SELECT
+  customer_name,
+  SUM(quantity) AS total_items,
+  SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) AS delivered_orders,
+  SUM(CASE WHEN status IN ('Cancelled','Returned') THEN 1 ELSE 0 END) AS cancelled_or_returned,
+  SUM(
+      CASE
+        WHEN status = 'Delivered'
+        THEN quantity * unit_price * (1 - (CASE WHEN discount_pct IS NULL THEN 0 ELSE discount_pct END)/100)
+        ELSE 0
+      END
+  ) AS delivered_net_revenue
+FROM order_cases
+WHERE order_date BETWEEN '2025-02-01' AND '2025-02-28'
+GROUP BY customer_name
+HAVING
+  SUM(quantity) >= 3
+  AND SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) >= 2
+  AND SUM(CASE WHEN status IN ('Cancelled','Returned') THEN 1 ELSE 0 END) = 0
+ORDER BY delivered_net_revenue DESC, customer_name ASC;
+
+
+
+/* =====================================================================================
+Exercise 4 — Discount bucket × category matrix with CASE + HAVING
+Brief:
+  • Build a discount_bucket by CASE on discount_pct:
+      'HIGH'(≥20), 'MED'(10–19.99), 'LOW'(0.01–9.99), 'NONE'(NULL or 0)
+  • For each (category, discount_bucket), compute:
+      rows_in_bucket, total_qty, avg_price.
+  • Keep only buckets having rows_in_bucket ≥ 2 AND avg_price BETWEEN 500 AND 40000.
+  • Sort by category (A→Z), then discount_bucket (LOW→MED→HIGH→NONE custom via CASE).
+-------------------------------------------------------------------------------------- */
+SELECT
+  category,
+  CASE
+    WHEN discount_pct >= 20                        THEN 'HIGH'
+    WHEN discount_pct >= 10 AND discount_pct < 20  THEN 'MED'
+    WHEN discount_pct >  0  AND discount_pct < 10  THEN 'LOW'
+    ELSE 'NONE'
+  END AS discount_bucket,
+  COUNT(*)                  AS rows_in_bucket,
+  SUM(quantity)             AS total_qty,
+  AVG(unit_price)           AS avg_price
+FROM order_cases
+GROUP BY
+  category,
+  CASE
+    WHEN discount_pct >= 20                        THEN 'HIGH'
+    WHEN discount_pct >= 10 AND discount_pct < 20  THEN 'MED'
+    WHEN discount_pct >  0  AND discount_pct < 10  THEN 'LOW'
+    ELSE 'NONE'
+  END
+HAVING
+  COUNT(*) >= 2
+  AND AVG(unit_price) BETWEEN 500 AND 40000
+ORDER BY
+  category ASC,
+  CASE
+    WHEN discount_pct >= 20                        THEN 3  -- order buckets: LOW(1), MED(2), HIGH(3), NONE(4)
+    WHEN discount_pct >= 10 AND discount_pct < 20  THEN 2
+    WHEN discount_pct >  0  AND discount_pct < 10  THEN 1
+    ELSE 4
+  END ASC;
+
+
+
+/* =====================================================================================
+Exercise 5 — Product readiness without joins: open vs closed pipeline using CASE
+Brief:
+  • Define pipeline_stage using CASE on status:
+      OPEN → Placed/Processing/Shipped/Pending
+      CLOSED → Delivered/Cancelled/Returned
+  • For each product, compute:
+      open_qty   = SUM(CASE WHEN stage='OPEN' THEN quantity ELSE 0 END)
+      closed_qty = SUM(CASE WHEN stage='CLOSED' THEN quantity ELSE 0 END)
+  • Keep products where open_qty ≥ 2 AND closed_qty ≥ 1.
+  • Sort by (open_qty - closed_qty) DESC, then closed_qty DESC, then product.
+-------------------------------------------------------------------------------------- */
+SELECT
+  product,
+  SUM(
+    CASE
+      WHEN (CASE
+              WHEN status IN ('Placed','Processing','Shipped','Pending') THEN 'OPEN'
+              ELSE 'CLOSED'
+            END) = 'OPEN'
+      THEN quantity ELSE 0
+    END
+  ) AS open_qty,
+  SUM(
+    CASE
+      WHEN (CASE
+              WHEN status IN ('Placed','Processing','Shipped','Pending') THEN 'OPEN'
+              ELSE 'CLOSED'
+            END) = 'CLOSED'
+      THEN quantity ELSE 0
+    END
+  ) AS closed_qty
+FROM order_cases
+GROUP BY product
+HAVING
+  SUM(
+    CASE
+      WHEN (CASE
+              WHEN status IN ('Placed','Processing','Shipped','Pending') THEN 'OPEN'
+              ELSE 'CLOSED'
+            END) = 'OPEN'
+      THEN quantity ELSE 0
+    END
+  ) >= 2
+  AND
+  SUM(
+    CASE
+      WHEN (CASE
+              WHEN status IN ('Placed','Processing','Shipped','Pending') THEN 'OPEN'
+              ELSE 'CLOSED'
+            END) = 'CLOSED'
+      THEN quantity ELSE 0
+    END
+  ) >= 1
+ORDER BY (open_qty - closed_qty) DESC, closed_qty DESC, product ASC;
+
