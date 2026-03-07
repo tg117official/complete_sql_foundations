@@ -1,25 +1,41 @@
-############################################# Foundations for Keys ############################################################################
+#############################################
+# Foundations for Keys - Demo Script
+#############################################
 
 -- Optional sandbox
--- DROP DATABASE IF EXISTS demo_keys;
--- CREATE DATABASE demo_keys; USE demo_keys;
+DROP DATABASE IF EXISTS demo_keys;
+CREATE DATABASE demo_keys;
+USE demo_keys;
 
--- ============ A) PRIMARY KEY (PK) ============
--- Why: Uniquely identify each row; needed for reliable lookups/relations.
--- What: Column(s) that are unique + NOT NULL.
--- Real-life: National ID → one person, one ID.
+
+-- =====================================================
+-- A) PRIMARY KEY (PK)
+-- =====================================================
+-- Uniquely identifies each row (UNIQUE + NOT NULL)
+
 DROP TABLE IF EXISTS students_pk;
 CREATE TABLE students_pk (
   student_id INT PRIMARY KEY,
   name VARCHAR(50)
 );
--- student_id ensures unique student records.
+
+-- Valid Inserts
+INSERT INTO students_pk VALUES (1,'Rahul');
+INSERT INTO students_pk VALUES (2,'Sneha');
+INSERT INTO students_pk VALUES (3,'Amit');
+
+-- Check Data
+SELECT * FROM students_pk;
+
+-- Invalid Insert (duplicate PK)
+-- INSERT INTO students_pk VALUES (1,'Duplicate Student');
 
 
--- ============ B) COMPOSITE PRIMARY KEY ============
--- Why: Sometimes uniqueness needs multiple columns.
--- What: Two+ columns together form the PK.
--- Real-life: (FlightNumber + Date) = unique flight day.
+-- =====================================================
+-- B) COMPOSITE PRIMARY KEY
+-- =====================================================
+-- Combination of columns must be unique
+
 DROP TABLE IF EXISTS enrollments;
 CREATE TABLE enrollments (
   student_id INT,
@@ -27,40 +43,86 @@ CREATE TABLE enrollments (
   PRIMARY KEY (student_id, course_id)
 );
 
+-- Valid Inserts
+INSERT INTO enrollments VALUES (1,101);
+INSERT INTO enrollments VALUES (1,102);
+INSERT INTO enrollments VALUES (2,101);
 
--- ============ C) FOREIGN KEY (FK) ============
--- Why: Enforce parent→child relationships; no orphans.
--- What: Column in child references parent’s PK.
--- Real-life: borrowed_books.user_id must exist in users.user_id.
+-- Check Data
+SELECT * FROM enrollments;
+
+-- Invalid Insert (duplicate combination)
+-- INSERT INTO enrollments VALUES (1,101);
+
+
+-- =====================================================
+-- C) FOREIGN KEY (FK)
+-- =====================================================
+-- Enforces parent-child relationship
+
+DROP TABLE IF EXISTS orders_fk;
 DROP TABLE IF EXISTS users_fk;
+
 CREATE TABLE users_fk (
   user_id INT PRIMARY KEY,
   name    VARCHAR(50) NOT NULL
 );
 
-DROP TABLE IF EXISTS orders_fk;
 CREATE TABLE orders_fk (
   order_id INT PRIMARY KEY,
   user_id  INT,
   FOREIGN KEY (user_id) REFERENCES users_fk(user_id)
 );
 
+-- Insert Parent Records
+INSERT INTO users_fk VALUES (1,'Arjun');
+INSERT INTO users_fk VALUES (2,'Priya');
 
--- ============ D) UNIQUE KEY ============
--- Why: Prevent duplicates in non-PK columns (NULLs allowed).
--- What: Like PK rules but not “the” primary identifier.
--- Real-life: One account per email.
+SELECT * FROM users_fk;
+
+-- Insert Child Records
+INSERT INTO orders_fk VALUES (101,1);
+INSERT INTO orders_fk VALUES (102,2);
+
+SELECT * FROM orders_fk;
+
+-- Invalid Insert (user_id not present in parent)
+-- INSERT INTO orders_fk VALUES (103,5);
+
+
+-- =====================================================
+-- D) UNIQUE KEY
+-- =====================================================
+-- Prevents duplicate values in a column
+
 DROP TABLE IF EXISTS users_unique;
+
 CREATE TABLE users_unique (
   user_id INT PRIMARY KEY,
   email   VARCHAR(100) UNIQUE
 );
 
+-- Valid Inserts
+INSERT INTO users_unique VALUES (1,'rahul@gmail.com');
+INSERT INTO users_unique VALUES (2,'sneha@gmail.com');
 
--- ============ E) SURROGATE vs NATURAL KEYS ============
--- Natural key: real-world identifier (email, ISBN).
--- Surrogate key: artificial ID (AUTO_INCREMENT).
+SELECT * FROM users_unique;
+
+-- Invalid Insert (duplicate email)
+-- INSERT INTO users_unique VALUES (3,'rahul@gmail.com');
+
+-- NULL allowed
+INSERT INTO users_unique VALUES (3,NULL);
+
+SELECT * FROM users_unique;
+
+
+-- =====================================================
+-- E) SURROGATE vs NATURAL KEYS
+-- =====================================================
+
 DROP TABLE IF EXISTS students_keys;
+
 CREATE TABLE students_keys (
     student_id   INT PRIMARY KEY AUTO_INCREMENT, -- Surrogate
     national_id  CHAR(9) UNIQUE NOT NULL,        -- Natural
@@ -68,7 +130,24 @@ CREATE TABLE students_keys (
     date_of_birth DATE NOT NULL
 );
 
+-- Inserts (student_id auto-generated)
+INSERT INTO students_keys (national_id,name,date_of_birth)
+VALUES ('IND000001','Karan','2000-02-10');
+
+INSERT INTO students_keys (national_id,name,date_of_birth)
+VALUES ('IND000002','Neha','2001-05-15');
+
+SELECT * FROM students_keys;
+
+-- Duplicate natural key
+-- INSERT INTO students_keys (national_id,name,date_of_birth)
+-- VALUES ('IND000001','Duplicate','2000-01-01');
+
+
+-- -----------------------------------------------------
+
 DROP TABLE IF EXISTS books_keys;
+
 CREATE TABLE books_keys (
     book_id        INT PRIMARY KEY AUTO_INCREMENT, -- Surrogate
     isbn           CHAR(13) UNIQUE,                -- Natural
@@ -77,4 +156,28 @@ CREATE TABLE books_keys (
     published_year INT
 );
 
+-- Valid Inserts
+INSERT INTO books_keys (isbn,title,author,published_year)
+VALUES ('9780134685991','Effective Java','Joshua Bloch',2018);
 
+INSERT INTO books_keys (isbn,title,author,published_year)
+VALUES ('9781492056355','Designing Data Intensive Apps','Martin Kleppmann',2017);
+
+SELECT * FROM books_keys;
+
+-- Invalid Insert (duplicate ISBN)
+-- INSERT INTO books_keys (isbn,title,author,published_year)
+-- VALUES ('9780134685991','Duplicate Book','Someone',2024);
+
+
+-- =====================================================
+-- Final Verification Queries
+-- =====================================================
+
+SELECT * FROM students_pk;
+SELECT * FROM enrollments;
+SELECT * FROM users_fk;
+SELECT * FROM orders_fk;
+SELECT * FROM users_unique;
+SELECT * FROM students_keys;
+SELECT * FROM books_keys;
