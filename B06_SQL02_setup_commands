@@ -1,0 +1,144 @@
+-- =========================================================
+-- SQL PRACTICE DATABASE
+-- Focus Areas:
+-- SELECT, WHERE, GROUP BY, GROUP BY multiple columns,
+-- aggregate functions, expressions inside aggregates,
+-- ORDER BY, ORDER BY multiple datatypes,
+-- ASC/DESC, ORDER BY multiple columns,
+-- ORDER BY expressions
+-- =========================================================
+
+-- Safe re-run
+DROP DATABASE IF EXISTS sql_practice_master;
+CREATE DATABASE sql_practice_master
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_0900_ai_ci;
+
+USE sql_practice_master;
+
+-- =========================================================
+-- TABLE: sales_orders
+-- Single table designed for broad SQL practice
+-- =========================================================
+DROP TABLE IF EXISTS sales_orders;
+
+CREATE TABLE sales_orders (
+    order_id            INT PRIMARY KEY,
+    order_date          DATE NOT NULL,
+    order_timestamp     DATETIME NOT NULL,
+
+    customer_name       VARCHAR(100) NOT NULL,
+    gender              VARCHAR(10) NOT NULL,
+    city                VARCHAR(50) NOT NULL,
+    state_name          VARCHAR(50) NOT NULL,
+    region              VARCHAR(20) NOT NULL,
+
+    product_category    VARCHAR(50) NOT NULL,
+    product_name        VARCHAR(100) NOT NULL,
+    brand               VARCHAR(50) NOT NULL,
+
+    sales_channel       VARCHAR(20) NOT NULL,      -- Online / Store / Partner
+    payment_mode        VARCHAR(20) NOT NULL,      -- UPI / Card / Cash / NetBanking / Wallet
+    order_status        VARCHAR(20) NOT NULL,      -- Delivered / Returned / Cancelled / Pending / Shipped
+
+    quantity            INT NOT NULL,
+    unit_price          DECIMAL(10,2) NOT NULL,
+    discount_percent    DECIMAL(5,2) NOT NULL,
+    tax_percent         DECIMAL(5,2) NOT NULL,
+    shipping_charge     DECIMAL(10,2) NOT NULL,
+
+    rating              DECIMAL(2,1) NULL,
+    is_priority_order   VARCHAR(3) NOT NULL,       -- Yes / No
+    delivery_days       INT NULL
+);
+
+-- =========================================================
+-- SAMPLE DATA (60 RECORDS)
+-- =========================================================
+INSERT INTO sales_orders VALUES
+(1,'2025-01-03','2025-01-03 10:15:00','Amit Sharma','Male','Mumbai','Maharashtra','West','Electronics','Bluetooth Speaker','JBL','Online','UPI','Delivered',2,3500.00,10.00,18.00,120.00,4.5,'Yes',2),
+(2,'2025-01-04','2025-01-04 11:20:00','Neha Patil','Female','Pune','Maharashtra','West','Fashion','Running Shoes','Nike','Store','Card','Delivered',1,4200.00,5.00,12.00,0.00,4.2,'No',1),
+(3,'2025-01-04','2025-01-04 14:05:00','Ravi Verma','Male','Nagpur','Maharashtra','West','Groceries','Olive Oil 1L','Figaro','Online','NetBanking','Delivered',3,650.00,2.00,5.00,40.00,4.0,'No',3),
+(4,'2025-01-05','2025-01-05 09:10:00','Pooja Nair','Female','Bengaluru','Karnataka','South','Electronics','Smart Watch','Samsung','Online','Card','Shipped',1,8999.00,12.00,18.00,150.00,NULL,'Yes',NULL),
+(5,'2025-01-05','2025-01-05 16:30:00','Karan Mehta','Male','Ahmedabad','Gujarat','West','Home','Mixer Grinder','Philips','Store','Cash','Delivered',1,5200.00,8.00,18.00,0.00,3.8,'No',2),
+(6,'2025-01-06','2025-01-06 12:45:00','Sneha Kulkarni','Female','Pune','Maharashtra','West','Beauty','Hair Dryer','Dyson','Partner','UPI','Cancelled',1,29999.00,15.00,18.00,0.00,NULL,'Yes',NULL),
+(7,'2025-01-06','2025-01-06 18:00:00','Vikas Rao','Male','Hyderabad','Telangana','South','Electronics','Laptop Bag','American Tourister','Online','Wallet','Delivered',2,1800.00,5.00,18.00,60.00,4.6,'No',4),
+(8,'2025-01-07','2025-01-07 13:10:00','Anjali Singh','Female','Delhi','Delhi','North','Fashion','Winter Jacket','Puma','Online','Card','Returned',1,6500.00,20.00,12.00,80.00,2.5,'Yes',5),
+(9,'2025-01-07','2025-01-07 19:25:00','Manoj Das','Male','Kolkata','West Bengal','East','Books','Data Engineering Basics','TechPress','Online','UPI','Delivered',2,850.00,0.00,5.00,30.00,4.8,'No',2),
+(10,'2025-01-08','2025-01-08 10:40:00','Isha Joshi','Female','Jaipur','Rajasthan','North','Home','Bedsheet Set','HomeTown','Store','Cash','Delivered',3,1200.00,10.00,12.00,0.00,4.1,'No',1),
+
+(11,'2025-01-08','2025-01-08 15:15:00','Rahul Yadav','Male','Lucknow','Uttar Pradesh','North','Groceries','Basmati Rice 5kg','India Gate','Partner','UPI','Delivered',2,780.00,3.00,5.00,50.00,4.4,'No',2),
+(12,'2025-01-09','2025-01-09 09:35:00','Kavita Iyer','Female','Chennai','Tamil Nadu','South','Beauty','Face Serum','Lakme','Online','NetBanking','Pending',1,999.00,7.00,18.00,35.00,NULL,'Yes',NULL),
+(13,'2025-01-09','2025-01-09 17:50:00','Suresh Patil','Male','Pune','Maharashtra','West','Electronics','Wireless Mouse','Logitech','Store','Card','Delivered',2,1499.00,6.00,18.00,0.00,4.7,'No',1),
+(14,'2025-01-10','2025-01-10 11:05:00','Meera Shah','Female','Surat','Gujarat','West','Fashion','Handbag','Baggit','Online','UPI','Delivered',1,2300.00,18.00,12.00,70.00,4.3,'Yes',3),
+(15,'2025-01-10','2025-01-10 20:00:00','Nitin Kapoor','Male','Delhi','Delhi','North','Electronics','Keyboard','HP','Partner','Wallet','Cancelled',1,2200.00,5.00,18.00,0.00,NULL,'No',NULL),
+(16,'2025-01-11','2025-01-11 08:55:00','Ritu Arora','Female','Noida','Uttar Pradesh','North','Books','SQL Practice Workbook','EduBooks','Online','Card','Delivered',4,499.00,0.00,5.00,25.00,4.9,'No',2),
+(17,'2025-01-11','2025-01-11 14:40:00','Arjun Menon','Male','Kochi','Kerala','South','Home','Vacuum Cleaner','Eureka Forbes','Store','Cash','Delivered',1,7200.00,10.00,18.00,0.00,4.0,'Yes',1),
+(18,'2025-01-12','2025-01-12 12:10:00','Priya Deshmukh','Female','Nashik','Maharashtra','West','Groceries','Green Tea Pack','Tetley','Online','UPI','Delivered',5,320.00,5.00,5.00,20.00,4.1,'No',2),
+(19,'2025-01-12','2025-01-12 18:30:00','Deepak Jain','Male','Indore','Madhya Pradesh','Central','Fashion','Formal Shirt','Louis Philippe','Store','Card','Returned',2,2100.00,12.00,12.00,0.00,2.8,'No',4),
+(20,'2025-01-13','2025-01-13 16:20:00','Shweta Roy','Female','Kolkata','West Bengal','East','Beauty','Lipstick Set','Maybelline','Partner','Wallet','Delivered',3,799.00,8.00,18.00,45.00,4.4,'Yes',3),
+
+(21,'2025-01-13','2025-01-13 19:15:00','Tarun Bhat','Male','Bhopal','Madhya Pradesh','Central','Electronics','Power Bank','Mi','Online','UPI','Delivered',2,1899.00,10.00,18.00,55.00,4.2,'No',2),
+(22,'2025-01-14','2025-01-14 10:25:00','Nisha Kuldeep','Female','Patna','Bihar','East','Home','Pressure Cooker','Prestige','Store','Cash','Delivered',1,3400.00,6.00,18.00,0.00,3.9,'No',1),
+(23,'2025-01-14','2025-01-14 13:50:00','Yogesh More','Male','Pune','Maharashtra','West','Books','Python for Data','TechPress','Online','NetBanking','Shipped',2,999.00,15.00,5.00,35.00,NULL,'Yes',NULL),
+(24,'2025-01-15','2025-01-15 09:45:00','Pallavi Rane','Female','Mumbai','Maharashtra','West','Fashion','Sunglasses','RayBan','Store','Card','Delivered',1,5600.00,20.00,12.00,0.00,4.6,'No',1),
+(25,'2025-01-15','2025-01-15 17:05:00','Gaurav Sethi','Male','Chandigarh','Chandigarh','North','Groceries','Almonds 1kg','Nutraj','Partner','UPI','Delivered',2,950.00,4.00,5.00,25.00,4.3,'No',3),
+(26,'2025-01-16','2025-01-16 11:30:00','Reshma Ali','Female','Hyderabad','Telangana','South','Beauty','Shampoo Combo','Loreal','Online','Wallet','Returned',3,650.00,10.00,18.00,40.00,3.0,'Yes',5),
+(27,'2025-01-16','2025-01-16 15:55:00','Harsh Vora','Male','Ahmedabad','Gujarat','West','Electronics','USB-C Charger','Boat','Store','Cash','Delivered',4,899.00,5.00,18.00,0.00,4.5,'No',1),
+(28,'2025-01-17','2025-01-17 12:15:00','Divya Shetty','Female','Mangaluru','Karnataka','South','Home','Table Lamp','Wipro','Online','Card','Delivered',2,1450.00,9.00,18.00,60.00,4.0,'No',3),
+(29,'2025-01-17','2025-01-17 18:45:00','Abhishek Tiwari','Male','Kanpur','Uttar Pradesh','North','Books','Advanced SQL Guide','EduBooks','Partner','UPI','Pending',1,699.00,0.00,5.00,20.00,NULL,'Yes',NULL),
+(30,'2025-01-18','2025-01-18 10:10:00','Sonal Gupta','Female','Delhi','Delhi','North','Fashion','Kurti','Biba','Store','Card','Delivered',3,1499.00,25.00,12.00,0.00,4.7,'No',1),
+
+(31,'2025-01-18','2025-01-18 14:35:00','Ramesh Pawar','Male','Nashik','Maharashtra','West','Groceries','Coffee Powder','Nescafe','Online','UPI','Delivered',2,450.00,5.00,5.00,25.00,4.1,'No',2),
+(32,'2025-01-19','2025-01-19 09:20:00','Bhavna Tripathi','Female','Lucknow','Uttar Pradesh','North','Beauty','Perfume','Titan','Store','Cash','Delivered',1,2800.00,14.00,18.00,0.00,4.2,'Yes',1),
+(33,'2025-01-19','2025-01-19 16:00:00','Kishore Rao','Male','Bengaluru','Karnataka','South','Electronics','Monitor 24 inch','LG','Online','Card','Delivered',1,12500.00,8.00,18.00,200.00,4.8,'Yes',2),
+(34,'2025-01-20','2025-01-20 11:45:00','Namrata Bose','Female','Kolkata','West Bengal','East','Home','Storage Box','Cello','Partner','Wallet','Cancelled',4,350.00,5.00,12.00,15.00,NULL,'No',NULL),
+(35,'2025-01-20','2025-01-20 19:05:00','Prashant Kulkarni','Male','Pune','Maharashtra','West','Books','MongoDB Essentials','TechPress','Online','NetBanking','Delivered',2,799.00,10.00,5.00,30.00,4.4,'No',2),
+(36,'2025-01-21','2025-01-21 13:25:00','Ayesha Khan','Female','Bhopal','Madhya Pradesh','Central','Fashion','Sneakers','Adidas','Store','Card','Delivered',1,4800.00,18.00,12.00,0.00,4.3,'Yes',1),
+(37,'2025-01-21','2025-01-21 17:40:00','Mohan Lal','Male','Jaipur','Rajasthan','North','Electronics','Earbuds','Sony','Online','UPI','Returned',2,3499.00,12.00,18.00,70.00,2.9,'Yes',6),
+(38,'2025-01-22','2025-01-22 10:50:00','Rachana Iyer','Female','Chennai','Tamil Nadu','South','Groceries','Oats Pack','Quaker','Store','Cash','Delivered',3,220.00,0.00,5.00,0.00,4.0,'No',1),
+(39,'2025-01-22','2025-01-22 15:30:00','Sandeep Jadhav','Male','Mumbai','Maharashtra','West','Beauty','Trimmer','Philips','Partner','UPI','Delivered',1,2100.00,7.00,18.00,50.00,4.5,'No',3),
+(40,'2025-01-23','2025-01-23 09:05:00','Komal Suri','Female','Delhi','Delhi','North','Home','Cookware Set','Prestige','Online','Card','Shipped',1,6800.00,16.00,18.00,90.00,NULL,'Yes',NULL),
+
+(41,'2025-01-23','2025-01-23 18:20:00','Ajay Solanki','Male','Surat','Gujarat','West','Electronics','Printer','HP','Store','Cash','Delivered',1,8900.00,10.00,18.00,0.00,4.1,'No',1),
+(42,'2025-01-24','2025-01-24 12:00:00','Mitali Sen','Female','Patna','Bihar','East','Books','Cloud Fundamentals','EduBooks','Online','Wallet','Delivered',2,650.00,5.00,5.00,25.00,4.6,'No',2),
+(43,'2025-01-24','2025-01-24 16:10:00','Jatin Malhotra','Male','Noida','Uttar Pradesh','North','Fashion','Blazer','Van Heusen','Partner','Card','Pending',1,5500.00,20.00,12.00,60.00,NULL,'Yes',NULL),
+(44,'2025-01-25','2025-01-25 11:35:00','Heena Merchant','Female','Ahmedabad','Gujarat','West','Beauty','Skin Cream','Nivea','Store','UPI','Delivered',4,399.00,8.00,18.00,0.00,4.2,'No',1),
+(45,'2025-01-25','2025-01-25 19:40:00','Vivek Saxena','Male','Indore','Madhya Pradesh','Central','Groceries','Honey 500g','Dabur','Online','NetBanking','Delivered',2,320.00,0.00,5.00,20.00,4.3,'No',2),
+(46,'2025-01-26','2025-01-26 10:25:00','Nandini Rao','Female','Hyderabad','Telangana','South','Electronics','Tablet','Samsung','Online','Card','Delivered',1,18999.00,15.00,18.00,180.00,4.7,'Yes',2),
+(47,'2025-01-26','2025-01-26 14:50:00','Rohit Bansal','Male','Chandigarh','Chandigarh','North','Home','Wall Clock','Ajanta','Store','Cash','Returned',2,850.00,5.00,12.00,0.00,3.1,'No',3),
+(48,'2025-01-27','2025-01-27 09:55:00','Tanvi Kulkarni','Female','Pune','Maharashtra','West','Books','Airflow Handbook','TechPress','Partner','UPI','Delivered',3,599.00,10.00,5.00,25.00,4.8,'Yes',3),
+(49,'2025-01-27','2025-01-27 13:15:00','Sameer Qureshi','Male','Bengaluru','Karnataka','South','Fashion','Track Pants','Puma','Online','Wallet','Delivered',2,1800.00,12.00,12.00,40.00,4.0,'No',2),
+(50,'2025-01-28','2025-01-28 17:25:00','Ankita Paul','Female','Kolkata','West Bengal','East','Groceries','Peanut Butter','Pintola','Store','Card','Delivered',1,425.00,5.00,5.00,0.00,4.4,'No',1),
+
+(51,'2025-01-28','2025-01-28 20:05:00','Dheeraj Singh','Male','Kanpur','Uttar Pradesh','North','Electronics','Webcam','Logitech','Online','UPI','Cancelled',1,3200.00,8.00,18.00,50.00,NULL,'Yes',NULL),
+(52,'2025-01-29','2025-01-29 10:45:00','Priti Nanda','Female','Chennai','Tamil Nadu','South','Beauty','Conditioner','Loreal','Store','Cash','Delivered',2,540.00,10.00,18.00,0.00,4.1,'No',1),
+(53,'2025-01-29','2025-01-29 15:20:00','Omkar Patil','Male','Mumbai','Maharashtra','West','Home','Water Bottle Set','Milton','Partner','UPI','Delivered',5,280.00,6.00,12.00,30.00,4.3,'No',3),
+(54,'2025-01-30','2025-01-30 11:10:00','Lavanya Krishnan','Female','Kochi','Kerala','South','Fashion','Ethnic Dress','W','Online','Card','Delivered',1,3900.00,22.00,12.00,75.00,4.5,'Yes',2),
+(55,'2025-01-30','2025-01-30 18:35:00','Anil Dubey','Male','Bhopal','Madhya Pradesh','Central','Books','Spark in Action','TechPress','Store','Cash','Delivered',2,950.00,5.00,5.00,0.00,4.6,'No',1),
+(56,'2025-01-31','2025-01-31 09:30:00','Geeta Sharma','Female','Jaipur','Rajasthan','North','Groceries','Dry Fruits Mix','Nutraj','Online','NetBanking','Shipped',1,1250.00,10.00,5.00,35.00,NULL,'Yes',NULL),
+(57,'2025-01-31','2025-01-31 14:10:00','Manish Agarwal','Male','Delhi','Delhi','North','Electronics','Smartphone','Samsung','Partner','Card','Delivered',1,25999.00,12.00,18.00,150.00,4.9,'Yes',2),
+(58,'2025-02-01','2025-02-01 12:40:00','Rupal Desai','Female','Surat','Gujarat','West','Beauty','Makeup Kit','Lakme','Store','UPI','Delivered',1,3499.00,18.00,18.00,0.00,4.2,'No',1),
+(59,'2025-02-01','2025-02-01 16:55:00','Ketan More','Male','Nashik','Maharashtra','West','Home','Office Chair','Nilkamal','Online','Wallet','Pending',1,7400.00,14.00,18.00,120.00,NULL,'Yes',NULL),
+(60,'2025-02-02','2025-02-02 10:05:00','Sara Khan','Female','Hyderabad','Telangana','South','Books','Database Design','EduBooks','Online','UPI','Delivered',2,899.00,0.00,5.00,30.00,4.7,'No',2);
+
+-- =========================================================
+-- OPTIONAL CHECK
+-- =========================================================
+SELECT COUNT(*) AS total_rows FROM sales_orders;
+
+-- =========================================================
+-- USEFUL NOTES
+-- This table supports:
+-- 1. Text-based ordering        -> customer_name, city, brand
+-- 2. Numeric ordering           -> quantity, unit_price, discount_percent
+-- 3. Date ordering              -> order_date
+-- 4. Datetime ordering          -> order_timestamp
+-- 5. Null handling practice     -> rating, delivery_days
+-- 6. Grouping by one column     -> city, product_category, order_status
+-- 7. Grouping by multiple cols  -> state_name + city, category + brand
+-- 8. Aggregate expressions      -> SUM(quantity * unit_price)
+-- 9. Derived sorting            -> ORDER BY quantity * unit_price DESC
+-- 10. Business-style analysis   -> revenue, discount impact, shipping impact
+-- =========================================================
+
