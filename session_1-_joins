@@ -1,0 +1,269 @@
+-- =========================================================
+-- MYSQL JOIN PRACTICE SCRIPT
+-- =========================================================
+
+DROP DATABASE IF EXISTS breakfast_join_db;
+CREATE DATABASE breakfast_join_db;
+USE breakfast_join_db;
+
+-- =========================================================
+-- 1. CREATE TABLES
+-- =========================================================
+
+DROP TABLE IF EXISTS breakfast_orders;
+CREATE TABLE breakfast_orders (
+    oid INT PRIMARY KEY,
+    customer_name VARCHAR(100),
+    token_color VARCHAR(30),
+    order_date DATE,
+    qty INT
+);
+
+DROP TABLE IF EXISTS token_details;
+CREATE TABLE token_details (
+    color VARCHAR(30) PRIMARY KEY,
+    breakfast VARCHAR(100),
+    price DECIMAL(8,2),
+    counter_name VARCHAR(100)
+);
+
+-- =========================================================
+-- 2. INSERT DATA INTO breakfast_orders
+-- =========================================================
+
+INSERT INTO breakfast_orders (oid, customer_name, token_color, order_date, qty) VALUES
+(1,  'Amit',    'Green',  '2026-03-25', 2),
+(2,  'Neha',    'Red',    '2026-03-25', 1),
+(3,  'Rohit',   'Green',  '2026-03-25', 3),
+(4,  'Sneha',   'Red',    '2026-03-25', 2),
+(5,  'Kiran',   'Green',  '2026-03-25', 1),
+(6,  'Pooja',   'Red',    '2026-03-25', 4),
+(7,  'Arjun',   'Red',    '2026-03-25', 2),
+(8,  'Meera',   'Blue',   '2026-03-25', 1),
+(9,  'Vikas',   'Yellow', '2026-03-25', 2),
+(10, 'Anita',   'Black',  '2026-03-25', 1),
+(11, 'Rahul',   'Green',  '2026-03-26', 2),
+(12, 'Kavya',   'Red',    '2026-03-26', 1),
+(13, 'Sanjay',  'Blue',   '2026-03-26', 3),
+(14, 'Divya',   'Black',  '2026-03-26', 2),
+(15, 'Manoj',   'Yellow', '2026-03-26', 1),
+(16, 'Nisha',   'Green',  '2026-03-26', 2),
+(17, 'Tarun',   'Red',    '2026-03-26', 5),
+(18, 'Priya',   'Blue',   '2026-03-26', 1),
+(19, 'Gaurav',  'Black',  '2026-03-26', 2),
+(20, 'Isha',    'Green',  '2026-03-27', 3),
+(21, 'Deepak',  'Red',    '2026-03-27', 2),
+(22, 'Ritu',    'Blue',   '2026-03-27', 1),
+(23, 'Ajay',    'Green',  '2026-03-27', 2),
+(24, 'Komal',   'Yellow', '2026-03-27', 3),
+(25, 'Nitin',   'Black',  '2026-03-27', 1),
+(26, 'Shreya',  'Red',    '2026-03-27', 2),
+(27, 'Yash',    'Blue',   '2026-03-27', 4),
+(28, 'Pallavi', 'Green',  '2026-03-27', 1),
+(29, 'Harsh',   'Yellow', '2026-03-27', 2),
+(30, 'Mohan',   'Purple', '2026-03-27', 1);
+
+-- =========================================================
+-- 3. INSERT DATA INTO token_details
+-- =========================================================
+
+INSERT INTO token_details (color, breakfast, price, counter_name) VALUES
+('Red',    'tea',      15.00, 'Counter 1'),
+('Green',  'vada paw', 25.00, 'Counter 2'),
+('Blue',   'poha',     30.00, 'Counter 3'),
+('Black',  'coffee',   20.00, 'Counter 4'),
+('Orange', 'sandwich', 40.00, 'Counter 5'),
+('White',  'idli',     35.00, 'Counter 6');
+
+-- =========================================================
+-- 4. VIEW DATA
+-- =========================================================
+
+SELECT * FROM breakfast_orders;
+SELECT * FROM token_details;
+
+-- =========================================================
+-- 5. INNER JOIN
+-- =========================================================
+
+SELECT *
+FROM breakfast_orders bo
+INNER JOIN token_details td
+    ON bo.token_color = td.color;
+
+-- =========================================================
+-- 6. LEFT JOIN
+-- =========================================================
+
+SELECT *
+FROM breakfast_orders bo
+LEFT JOIN token_details td
+    ON bo.token_color = td.color;
+
+-- =========================================================
+-- 7. RIGHT JOIN
+-- =========================================================
+
+SELECT *
+FROM breakfast_orders bo
+RIGHT JOIN token_details td
+    ON bo.token_color = td.color;
+
+-- =========================================================
+-- 8. FULL OUTER JOIN (MySQL workaround)
+-- =========================================================
+
+SELECT *
+FROM breakfast_orders bo
+LEFT JOIN token_details td
+    ON bo.token_color = td.color
+
+UNION
+
+SELECT *
+FROM breakfast_orders bo
+RIGHT JOIN token_details td
+    ON bo.token_color = td.color;
+
+-- =========================================================
+-- 9. LEFT SEMI JOIN EQUIVALENT
+-- =========================================================
+
+SELECT bo.*
+FROM breakfast_orders bo
+WHERE EXISTS (
+    SELECT 1
+    FROM token_details td
+    WHERE bo.token_color = td.color
+);
+
+-- =========================================================
+-- 10. LEFT ANTI JOIN EQUIVALENT
+-- =========================================================
+
+SELECT bo.*
+FROM breakfast_orders bo
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM token_details td
+    WHERE bo.token_color = td.color
+);
+
+-- =========================================================
+-- 11. CROSS JOIN
+-- =========================================================
+
+SELECT *
+FROM breakfast_orders bo
+CROSS JOIN token_details td;
+
+-- =========================================================
+-- 12. JOIN + FILTER
+-- Show only orders where breakfast item is tea or poha
+-- =========================================================
+
+SELECT
+    bo.oid,
+    bo.customer_name,
+    bo.token_color,
+    td.breakfast,
+    td.price,
+    bo.qty
+FROM breakfast_orders bo
+INNER JOIN token_details td
+    ON bo.token_color = td.color
+WHERE td.breakfast IN ('tea', 'poha');
+
+-- =========================================================
+-- 13. JOIN + GROUP BY
+-- Count orders by breakfast item
+-- =========================================================
+
+SELECT
+    td.breakfast,
+    COUNT(*) AS total_orders
+FROM breakfast_orders bo
+INNER JOIN token_details td
+    ON bo.token_color = td.color
+GROUP BY td.breakfast;
+
+-- =========================================================
+-- 14. JOIN + GROUP BY + SUM
+-- Total quantity by breakfast item
+-- =========================================================
+
+SELECT
+    td.breakfast,
+    SUM(bo.qty) AS total_qty
+FROM breakfast_orders bo
+INNER JOIN token_details td
+    ON bo.token_color = td.color
+GROUP BY td.breakfast;
+
+-- =========================================================
+-- 15. JOIN + GROUP BY + HAVING
+-- Show breakfast items whose total quantity is more than 5
+-- =========================================================
+
+SELECT
+    td.breakfast,
+    SUM(bo.qty) AS total_qty
+FROM breakfast_orders bo
+INNER JOIN token_details td
+    ON bo.token_color = td.color
+GROUP BY td.breakfast
+HAVING SUM(bo.qty) > 5;
+
+-- =========================================================
+-- 16. JOIN + ORDER BY
+-- =========================================================
+
+SELECT
+    bo.oid,
+    bo.customer_name,
+    td.breakfast,
+    td.price,
+    bo.qty
+FROM breakfast_orders bo
+INNER JOIN token_details td
+    ON bo.token_color = td.color
+ORDER BY td.price DESC, bo.customer_name ASC;
+
+-- =========================================================
+-- 17. CASE EXPRESSION
+-- Categorize quantity
+-- =========================================================
+
+SELECT
+    oid,
+    customer_name,
+    token_color,
+    qty,
+    CASE
+        WHEN qty = 1 THEN 'Small'
+        WHEN qty BETWEEN 2 AND 3 THEN 'Medium'
+        ELSE 'Bulk'
+    END AS qty_type
+FROM breakfast_orders;
+
+-- =========================================================
+-- 18. CASE + JOIN
+-- Bill classification
+-- =========================================================
+
+SELECT
+    bo.oid,
+    bo.customer_name,
+    td.breakfast,
+    td.price,
+    bo.qty,
+    (td.price * bo.qty) AS total_amount,
+    CASE
+        WHEN (td.price * bo.qty) < 30 THEN 'Low Bill'
+        WHEN (td.price * bo.qty) BETWEEN 30 AND 70 THEN 'Medium Bill'
+        ELSE 'High Bill'
+    END AS bill_category
+FROM breakfast_orders bo
+INNER JOIN token_details td
+    ON bo.token_color = td.color
+ORDER BY total_amount DESC;
