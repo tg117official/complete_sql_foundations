@@ -1,0 +1,85 @@
+-- ============================================================
+-- DATABASE SETUP
+-- ============================================================
+
+DROP DATABASE IF EXISTS mysql_window_demo;
+CREATE DATABASE mysql_window_demo;
+USE mysql_window_demo;
+
+-- ============================================================
+-- TABLE 1: departments
+-- Purpose:
+-- Small master table to demonstrate JOIN operations later
+-- ============================================================
+
+DROP TABLE IF EXISTS departments;
+
+CREATE TABLE departments (
+    department_id   INT PRIMARY KEY,
+    department_name VARCHAR(50) NOT NULL,
+    location        VARCHAR(50) NOT NULL
+);
+
+INSERT INTO departments (department_id, department_name, location) VALUES
+(101, 'Engineering', 'Pune'),
+(102, 'Sales',       'Mumbai'),
+(103, 'HR',          'Delhi'),
+(104, 'Finance',     'Bangalore');
+
+-- ============================================================
+-- TABLE 2: employees
+-- Purpose:
+-- Main table for demonstrating:
+-- WHERE, GROUP BY, HAVING, ORDER BY, JOIN, WINDOW FUNCTIONS
+-- ============================================================
+
+DROP TABLE IF EXISTS employees;
+
+CREATE TABLE employees (
+    emp_id          INT PRIMARY KEY,
+    emp_name        VARCHAR(50) NOT NULL,
+    gender          VARCHAR(10),
+    department_id   INT NOT NULL,
+    job_role        VARCHAR(50) NOT NULL,
+    hire_date       DATE NOT NULL,
+    salary          DECIMAL(10,2) NOT NULL,
+    bonus           DECIMAL(10,2) NOT NULL,
+    performance_score INT NOT NULL,
+    manager_id      INT NULL,
+    city            VARCHAR(50) NOT NULL,
+    FOREIGN KEY (department_id) REFERENCES departments(department_id)
+);
+
+INSERT INTO employees
+(emp_id, emp_name, gender, department_id, job_role, hire_date, salary, bonus, performance_score, manager_id, city)
+VALUES
+(1,  'Amit',    'Male',   101, 'Data Engineer',        '2021-01-10', 75000,  5000, 88, NULL, 'Pune'),
+(2,  'Neha',    'Female', 101, 'Data Engineer',        '2021-03-15', 78000,  6000, 91, 1,    'Pune'),
+(3,  'Rohit',   'Male',   101, 'Data Analyst',         '2021-04-20', 62000,  3500, 79, 1,    'Mumbai'),
+(4,  'Sneha',   'Female', 101, 'Data Scientist',       '2021-06-11', 95000,  8000, 94, 1,    'Pune'),
+(5,  'Karan',   'Male',   101, 'Data Analyst',         '2022-01-05', 62000,  4000, 82, 2,    'Nashik'),
+
+(6,  'Pooja',   'Female', 102, 'Sales Executive',      '2021-02-17', 54000, 12000, 85, NULL, 'Mumbai'),
+(7,  'Vikas',   'Male',   102, 'Sales Executive',      '2021-05-23', 54000, 10000, 81, 6,    'Mumbai'),
+(8,  'Ritu',    'Female', 102, 'Sales Manager',        '2020-12-01', 88000, 15000, 92, 6,    'Pune'),
+(9,  'Manoj',   'Male',   102, 'Account Manager',      '2022-07-19', 67000,  9000, 77, 8,    'Delhi'),
+(10, 'Priya',   'Female', 102, 'Sales Executive',      '2023-01-25', 50000,  7000, 74, 8,    'Mumbai'),
+
+(11, 'Anjali',  'Female', 103, 'HR Executive',         '2021-08-10', 58000,  3000, 84, NULL, 'Delhi'),
+(12, 'Suresh',  'Male',   103, 'HR Manager',           '2020-09-14', 82000,  7000, 89, 11,   'Delhi'),
+(13, 'Meena',   'Female', 103, 'Recruiter',            '2022-02-11', 52000,  2500, 76, 11,   'Jaipur'),
+(14, 'Tarun',   'Male',   103, 'Recruiter',            '2023-04-09', 52000,  2000, 73, 12,   'Delhi'),
+(15, 'Kavita',  'Female', 103, 'HR Executive',         '2022-11-30', 61000,  3500, 87, 12,   'Pune'),
+
+(16, 'Arjun',   'Male',   104, 'Financial Analyst',    '2021-07-07', 70000,  5000, 83, NULL, 'Bangalore'),
+(17, 'Divya',   'Female', 104, 'Financial Analyst',    '2021-10-18', 70000,  5500, 86, 16,   'Bangalore'),
+(18, 'Nitin',   'Male',   104, 'Finance Manager',      '2020-06-22', 98000,  9000, 93, 16,   'Mumbai'),
+(19, 'Shreya',  'Female', 104, 'Accountant',           '2022-03-13', 56000,  3000, 78, 18,   'Bangalore'),
+(20, 'Yash',    'Male',   104, 'Accountant',           '2023-05-16', 56000,  2500, 75, 18,   'Pune');
+
+-- ============================================================
+-- OPTIONAL CHECK QUERIES
+-- ============================================================
+
+SELECT * FROM departments;
+SELECT * FROM employees;
