@@ -78,6 +78,619 @@ VALUES
 (20, 'Yash',    'Male',   104, 'Accountant',           '2023-05-16', 56000,  2500, 75, 18,   'Pune');
 
 -- ============================================================
+-- WINDOW FUNCTIONS DEMO SCRIPT - MYSQL 8.0+
+-- ============================================================
+-- Purpose:
+-- Step-by-step demonstration of:
+-- 1) What are windows
+-- 2) PARTITION BY
+-- 3) OVER() clause using ROW_NUMBER()
+-- 4) Ranking window functions
+-- 5) Aggregate window functions
+-- 6) Analytical window functions
+--
+-- Important:
+-- Window functions are available in MySQL 8.0+
+-- ============================================================
+
+-- ============================================================
+-- SETUP
+-- ============================================================
+
+DROP DATABASE IF EXISTS mysql_window_demo;
+CREATE DATABASE mysql_window_demo;
+USE mysql_window_demo;
+
+-- ============================================================
+-- TABLE 1: departments
+-- Kept simple so that later JOIN can also be demonstrated
+-- ============================================================
+
+DROP TABLE IF EXISTS departments;
+
+CREATE TABLE departments (
+    department_id   INT PRIMARY KEY,
+    department_name VARCHAR(50) NOT NULL,
+    location        VARCHAR(50) NOT NULL
+);
+
+INSERT INTO departments (department_id, department_name, location) VALUES
+(101, 'Engineering', 'Pune'),
+(102, 'Sales', 'Mumbai'),
+(103, 'HR', 'Delhi'),
+(104, 'Finance', 'Bangalore');
+
+-- ============================================================
+-- TABLE 2: employees
+-- Main table for demonstrating window functions and later SQL flow
+-- ============================================================
+
+DROP TABLE IF EXISTS employees;
+
+CREATE TABLE employees (
+    emp_id             INT PRIMARY KEY,
+    emp_name           VARCHAR(50) NOT NULL,
+    gender             VARCHAR(10),
+    department_id      INT NOT NULL,
+    job_role           VARCHAR(50) NOT NULL,
+    hire_date          DATE NOT NULL,
+    salary             DECIMAL(10,2) NOT NULL,
+    bonus              DECIMAL(10,2) NOT NULL,
+    performance_score  INT NOT NULL,
+    manager_id         INT NULL,
+    city               VARCHAR(50) NOT NULL,
+    FOREIGN KEY (department_id) REFERENCES departments(department_id)
+);
+
+INSERT INTO employees
+(emp_id, emp_name, gender, department_id, job_role, hire_date, salary, bonus, performance_score, manager_id, city)
+VALUES
+(1,  'Amit',   'Male',   101, 'Data Engineer',     '2021-01-10', 75000,  5000, 88, NULL, 'Pune'),
+(2,  'Neha',   'Female', 101, 'Data Engineer',     '2021-03-15', 78000,  6000, 91, 1,    'Pune'),
+(3,  'Rohit',  'Male',   101, 'Data Analyst',      '2021-04-20', 62000,  3500, 79, 1,    'Mumbai'),
+(4,  'Sneha',  'Female', 101, 'Data Scientist',    '2021-06-11', 95000,  8000, 94, 1,    'Pune'),
+(5,  'Karan',  'Male',   101, 'Data Analyst',      '2022-01-05', 62000,  4000, 82, 2,    'Nashik'),
+
+(6,  'Pooja',  'Female', 102, 'Sales Executive',   '2021-02-17', 54000, 12000, 85, NULL, 'Mumbai'),
+(7,  'Vikas',  'Male',   102, 'Sales Executive',   '2021-05-23', 54000, 10000, 81, 6,    'Mumbai'),
+(8,  'Ritu',   'Female', 102, 'Sales Manager',     '2020-12-01', 88000, 15000, 92, 6,    'Pune'),
+(9,  'Manoj',  'Male',   102, 'Account Manager',   '2022-07-19', 67000,  9000, 77, 8,    'Delhi'),
+(10, 'Priya',  'Female', 102, 'Sales Executive',   '2023-01-25', 50000,  7000, 74, 8,    'Mumbai'),
+
+(11, 'Anjali', 'Female', 103, 'HR Executive',      '2021-08-10', 58000,  3000, 84, NULL, 'Delhi'),
+(12, 'Suresh', 'Male',   103, 'HR Manager',        '2020-09-14', 82000,  7000, 89, 11,   'Delhi'),
+(13, 'Meena',  'Female', 103, 'Recruiter',         '2022-02-11', 52000,  2500, 76, 11,   'Jaipur'),
+(14, 'Tarun',  'Male',   103, 'Recruiter',         '2023-04-09', 52000,  2000, 73, 12,   'Delhi'),
+(15, 'Kavita', 'Female', 103, 'HR Executive',      '2022-11-30', 61000,  3500, 87, 12,   'Pune'),
+
+(16, 'Arjun',  'Male',   104, 'Financial Analyst', '2021-07-07', 70000,  5000, 83, NULL, 'Bangalore'),
+(17, 'Divya',  'Female', 104, 'Financial Analyst', '2021-10-18', 70000,  5500, 86, 16,   'Bangalore'),
+(18, 'Nitin',  'Male',   104, 'Finance Manager',   '2020-06-22', 98000,  9000, 93, 16,   'Mumbai'),
+(19, 'Shreya', 'Female', 104, 'Accountant',        '2022-03-13', 56000,  3000, 78, 18,   'Bangalore'),
+(20, 'Yash',   'Male',   104, 'Accountant',        '2023-05-16', 56000,  2500, 75, 18,   'Pune');
+
+-- ============================================================
+-- BASE DATA CHECK
+-- ============================================================
+
+SELECT * FROM departments;
+SELECT * FROM employees;
+
+-- ============================================================
+-- 1) WHAT ARE WINDOWS
+-- ============================================================
+-- A window is a set of rows related to the current row.
+-- Window functions perform calculation across that set of rows
+-- WITHOUT reducing the number of rows.
+--
+-- Compare this with GROUP BY:
+-- GROUP BY reduces rows
+-- Window functions keep all rows visible
+--
+-- In the below query, department-wise average salary is calculated,
+-- but all employee rows still remain visible.
+-- The "window" here is all rows belonging to the same department_id.
+-- ============================================================
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    AVG(salary) OVER (PARTITION BY department_id) AS dept_avg_salary
+FROM employees;
+
+-- ============================================================
+-- 2) WHAT IS PARTITION BY
+-- ============================================================
+-- PARTITION BY divides the result set into logical groups
+-- for window calculation.
+--
+-- Important:
+-- PARTITION BY does NOT merge rows like GROUP BY.
+-- It only creates separate windows for calculation.
+--
+-- Here each department becomes a separate partition/window.
+-- Row numbering restarts from 1 in each department.
+--
+-- Important constraint:
+-- ROW_NUMBER() requires an ORDER BY inside OVER()
+-- because numbering needs a defined sequence.
+-- ============================================================
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    ROW_NUMBER() OVER (
+        PARTITION BY department_id
+        ORDER BY salary DESC
+    ) AS row_num_in_department
+FROM employees;
+
+-- ============================================================
+-- 3) WHAT IS OVER() CLAUSE AND HOW IT WORKS
+-- ============================================================
+-- OVER() converts a normal function into a window function.
+--
+-- Without OVER(), functions like SUM(), AVG() act like regular
+-- aggregate functions and may reduce rows when used with GROUP BY.
+--
+-- With OVER(), calculation happens over a "window" of rows
+-- while keeping all rows visible.
+--
+-- ROW_NUMBER() is always used with OVER()
+-- and usually ORDER BY is mandatory in practice because the row
+-- sequence must be defined.
+--
+-- Example 1:
+-- No PARTITION BY means the whole result set is one single window.
+-- Numbering is done across the full table.
+-- ============================================================
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    ROW_NUMBER() OVER (
+        ORDER BY salary DESC
+    ) AS overall_row_num_by_salary
+FROM employees;
+
+-- ============================================================
+-- Example 2:
+-- PARTITION BY + ORDER BY
+-- First rows are divided into departments
+-- then numbering happens inside each department
+-- ============================================================
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    ROW_NUMBER() OVER (
+        PARTITION BY department_id
+        ORDER BY salary DESC
+    ) AS dept_row_num_by_salary
+FROM employees;
+
+-- ============================================================
+-- 4) RANKING WINDOW FUNCTIONS
+-- ============================================================
+-- Ranking functions assign position/order to rows.
+--
+-- Common ranking functions:
+-- 1. ROW_NUMBER()
+-- 2. RANK()
+-- 3. DENSE_RANK()
+-- 4. NTILE()
+--
+-- Important constraint:
+-- Ranking functions need ORDER BY inside OVER()
+-- because ranking only makes sense when an order is defined.
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 4.1 ROW_NUMBER()
+-- Gives unique sequential number
+-- Even tied values get different row numbers
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    ROW_NUMBER() OVER (
+        PARTITION BY department_id
+        ORDER BY salary DESC
+    ) AS row_number_rank
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 4.2 RANK()
+-- Same rank for tied values
+-- Next rank is skipped after a tie
+-- Example pattern: 1, 2, 2, 4
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    RANK() OVER (
+        PARTITION BY department_id
+        ORDER BY salary DESC
+    ) AS salary_rank
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 4.3 DENSE_RANK()
+-- Same rank for tied values
+-- Next rank is NOT skipped
+-- Example pattern: 1, 2, 2, 3
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    DENSE_RANK() OVER (
+        PARTITION BY department_id
+        ORDER BY salary DESC
+    ) AS dense_salary_rank
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 4.4 NTILE(n)
+-- Splits ordered rows into n buckets
+--
+-- Important constraint:
+-- NTILE() needs ORDER BY because bucket assignment depends on order
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    salary,
+    NTILE(4) OVER (
+        ORDER BY salary DESC
+    ) AS salary_quartile
+FROM employees;
+
+-- ============================================================
+-- 5) AGGREGATE WINDOW FUNCTIONS
+-- ============================================================
+-- Aggregate window functions include:
+-- SUM(), AVG(), MIN(), MAX(), COUNT()
+--
+-- Important:
+-- These can be used as normal aggregate functions
+-- OR as window functions when OVER() is added.
+--
+-- Important constraint:
+-- Aggregate window functions do NOT always require ORDER BY.
+-- If ORDER BY is omitted:
+--   calculation is over the full partition
+-- If ORDER BY is included:
+--   often it becomes cumulative/running depending on function/frame
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 5.1 Department-wise total salary
+-- No ORDER BY inside OVER()
+-- So the total is calculated for the full partition
+-- and repeated for each row in that partition
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    SUM(salary) OVER (
+        PARTITION BY department_id
+    ) AS dept_total_salary
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 5.2 Department-wise average salary
+-- Full partition average because ORDER BY is not specified
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    AVG(salary) OVER (
+        PARTITION BY department_id
+    ) AS dept_avg_salary
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 5.3 Department-wise minimum and maximum salary
+-- Full partition min/max
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    MIN(salary) OVER (
+        PARTITION BY department_id
+    ) AS dept_min_salary,
+    MAX(salary) OVER (
+        PARTITION BY department_id
+    ) AS dept_max_salary
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 5.4 Department-wise employee count
+-- COUNT() also works as a window function
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    COUNT(*) OVER (
+        PARTITION BY department_id
+    ) AS employees_in_department
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 5.5 Running total / cumulative salary
+--
+-- Important:
+-- Here ORDER BY is used because cumulative calculation depends on sequence
+-- Frame clause is explicitly written for clarity
+--
+-- ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW means:
+-- start from first row of the ordered window
+-- and keep adding until current row
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    hire_date,
+    salary,
+    SUM(salary) OVER (
+        ORDER BY hire_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_total_salary
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 5.6 Running total inside each department
+-- First partition by department
+-- then order rows by hire_date inside each department
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    hire_date,
+    salary,
+    SUM(salary) OVER (
+        PARTITION BY department_id
+        ORDER BY hire_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS dept_running_total_salary
+FROM employees;
+
+-- ============================================================
+-- 6) ANALYTICAL WINDOW FUNCTIONS
+-- ============================================================
+-- Common analytical window functions:
+-- LAG()
+-- LEAD()
+-- FIRST_VALUE()
+-- LAST_VALUE()
+--
+-- These are very useful for comparison with previous/next row,
+-- trend analysis, and sequence-based logic.
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 6.1 LAG()
+-- Returns value from previous row
+--
+-- Important constraint:
+-- LAG() needs ORDER BY because "previous row" only makes sense
+-- when row order is clearly defined
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    hire_date,
+    salary,
+    LAG(salary) OVER (
+        ORDER BY hire_date
+    ) AS previous_salary
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 6.2 LEAD()
+-- Returns value from next row
+--
+-- Important constraint:
+-- LEAD() also depends on ORDER BY
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    hire_date,
+    salary,
+    LEAD(salary) OVER (
+        ORDER BY hire_date
+    ) AS next_salary
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 6.3 Compare current salary with previous salary
+-- Helpful for explaining analytical comparison
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    hire_date,
+    salary,
+    LAG(salary) OVER (
+        ORDER BY hire_date
+    ) AS previous_salary,
+    salary - LAG(salary) OVER (
+        ORDER BY hire_date
+    ) AS salary_difference_from_previous
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 6.4 FIRST_VALUE()
+-- Returns the first value in the ordered window
+--
+-- Here:
+-- highest salary in each department because ordering is DESC
+--
+-- Important:
+-- FIRST_VALUE() depends on ORDER BY
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    FIRST_VALUE(salary) OVER (
+        PARTITION BY department_id
+        ORDER BY salary DESC
+    ) AS highest_salary_in_department
+FROM employees;
+
+-- ------------------------------------------------------------
+-- 6.5 LAST_VALUE()
+-- Returns the last value in the current frame
+--
+-- Important caution:
+-- LAST_VALUE() is tricky.
+-- If frame is not properly defined, many students get confused.
+--
+-- To get the true last value in the full partition,
+-- explicitly define the frame:
+-- ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+--
+-- Here salary is ordered DESC, so the last value becomes
+-- the lowest salary in that department.
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    LAST_VALUE(salary) OVER (
+        PARTITION BY department_id
+        ORDER BY salary DESC
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS lowest_salary_in_department
+FROM employees;
+
+-- ============================================================
+-- EXTRA DEMONSTRATIONS FOR BETTER TEACHING
+-- These are optional but useful while explaining concepts
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- A) Difference between GROUP BY and window function
+-- GROUP BY reduces rows
+-- ------------------------------------------------------------
+
+SELECT
+    department_id,
+    AVG(salary) AS dept_avg_salary
+FROM employees
+GROUP BY department_id;
+
+-- ------------------------------------------------------------
+-- B) Window function keeps all rows visible
+-- ------------------------------------------------------------
+
+SELECT
+    emp_id,
+    emp_name,
+    department_id,
+    salary,
+    AVG(salary) OVER (PARTITION BY department_id) AS dept_avg_salary
+FROM employees;
+
+-- ------------------------------------------------------------
+-- C) Using JOIN with window functions
+-- Useful later when you teach joins + windows together
+-- ------------------------------------------------------------
+
+SELECT
+    e.emp_id,
+    e.emp_name,
+    d.department_name,
+    e.salary,
+    RANK() OVER (
+        PARTITION BY d.department_name
+        ORDER BY e.salary DESC
+    ) AS dept_salary_rank
+FROM employees e
+JOIN departments d
+    ON e.department_id = d.department_id;
+
+-- ------------------------------------------------------------
+-- D) Top 2 salaries in each department
+--
+-- Important:
+-- Window function result cannot be directly used in WHERE
+-- of the same SELECT because WHERE executes earlier.
+-- So use subquery or CTE.
+-- ------------------------------------------------------------
+
+SELECT *
+FROM (
+    SELECT
+        emp_id,
+        emp_name,
+        department_id,
+        salary,
+        ROW_NUMBER() OVER (
+            PARTITION BY department_id
+            ORDER BY salary DESC
+        ) AS rn
+    FROM employees
+) x
+WHERE rn <= 2;
+
+-- ============================================================
+-- IMPORTANT NOTES
+-- ============================================================
+-- 1. Window function keeps rows visible
+-- 2. PARTITION BY creates logical groups, not grouped output
+-- 3. ORDER BY inside OVER() controls calculation order
+-- 4. ORDER BY outside query controls final display order
+-- 5. Ranking functions require ORDER BY
+-- 6. Aggregate window functions may not require ORDER BY
+-- 7. LAG/LEAD/FIRST_VALUE/LAST_VALUE depend heavily on ORDER BY
+-- 8. LAST_VALUE() often needs explicit frame definition
+-- 9. Window functions cannot be directly filtered in WHERE
+--    of the same query level
+-- ============================================================
+
+-- ============================================================
 -- OPTIONAL CHECK QUERIES
 -- ============================================================
 
