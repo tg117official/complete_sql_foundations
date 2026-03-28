@@ -1,0 +1,370 @@
+-- ============================================================
+-- B07_SQL02 PREPARATION SCRIPT
+-- Purpose:
+-- Prepare test data for 50 SQL exercises on:
+-- SELECT, FILTER, GROUP BY, ORDER BY, CASE EXPRESSION,
+-- JOINS, WINDOW FUNCTIONS (RANK, DENSE_RANK, ROW_NUMBER)
+--
+-- Notes:
+-- 1. This script is intentionally designed WITHOUT foreign key constraints
+-- 2. The data includes:
+--    - duplicates and ties for ranking functions
+--    - NULL values for filtering practice
+--    - mixed statuses and dates for CASE/FILTER/GROUP BY
+--    - enough relational structure for JOIN exercises
+-- ============================================================
+
+DROP DATABASE IF EXISTS sql_test_foundations;
+CREATE DATABASE sql_test_foundations;
+USE sql_test_foundations;
+
+-- ============================================================
+-- 1. REGIONS
+-- ============================================================
+DROP TABLE IF EXISTS regions;
+
+CREATE TABLE regions (
+    region_id INT,
+    region_name VARCHAR(50)
+);
+
+INSERT INTO regions (region_id, region_name) VALUES
+(1, 'North'),
+(2, 'South'),
+(3, 'East'),
+(4, 'West'),
+(5, 'Central');
+
+-- ============================================================
+-- 2. CUSTOMERS
+-- ============================================================
+DROP TABLE IF EXISTS customers;
+
+CREATE TABLE customers (
+    customer_id INT,
+    customer_name VARCHAR(100),
+    gender VARCHAR(10),
+    city VARCHAR(50),
+    state_name VARCHAR(50),
+    region_id INT,
+    signup_date DATE,
+    customer_type VARCHAR(20)
+);
+
+INSERT INTO customers (customer_id, customer_name, gender, city, state_name, region_id, signup_date, customer_type) VALUES
+(101, 'Amit Sharma', 'Male', 'Nagpur', 'Maharashtra', 5, '2024-01-10', 'Regular'),
+(102, 'Neha Verma', 'Female', 'Pune', 'Maharashtra', 5, '2024-02-18', 'Premium'),
+(103, 'Rahul Mehta', 'Male', 'Delhi', 'Delhi', 1, '2024-03-05', 'Regular'),
+(104, 'Sneha Iyer', 'Female', 'Chennai', 'Tamil Nadu', 2, '2024-01-25', 'Premium'),
+(105, 'Karan Patel', 'Male', 'Ahmedabad', 'Gujarat', 4, '2024-04-11', 'Regular'),
+(106, 'Pooja Singh', 'Female', 'Lucknow', 'Uttar Pradesh', 1, '2024-02-02', 'Premium'),
+(107, 'Vikas Rao', 'Male', 'Hyderabad', 'Telangana', 2, '2024-03-20', 'Regular'),
+(108, 'Anjali Das', 'Female', 'Kolkata', 'West Bengal', 3, '2024-01-15', 'Premium'),
+(109, 'Rohit Jain', 'Male', 'Jaipur', 'Rajasthan', 4, '2024-02-28', 'Regular'),
+(110, 'Meera Nair', 'Female', 'Kochi', 'Kerala', 2, '2024-03-01', 'Premium'),
+(111, 'Suresh Yadav', 'Male', 'Patna', 'Bihar', 3, '2024-04-01', 'Regular'),
+(112, 'Divya Kapoor', 'Female', 'Bhopal', 'Madhya Pradesh', 5, '2024-04-12', 'Regular'),
+(113, 'Arjun Malhotra', 'Male', 'Delhi', 'Delhi', 1, '2024-01-08', 'Premium'),
+(114, 'Kavita Joshi', 'Female', 'Surat', 'Gujarat', 4, '2024-02-14', 'Regular'),
+(115, 'Manish Tiwari', 'Male', 'Varanasi', 'Uttar Pradesh', 1, '2024-03-18', 'Regular'),
+(116, 'Ritika Sen', 'Female', 'Ranchi', 'Jharkhand', 3, '2024-03-26', 'Premium'),
+(117, 'Nitin Kulkarni', 'Male', 'Mumbai', 'Maharashtra', 5, '2024-01-30', 'Premium'),
+(118, 'Shreya Bose', 'Female', 'Kolkata', 'West Bengal', 3, '2024-02-09', 'Regular'),
+(119, 'Harsh Vardhan', 'Male', 'Indore', 'Madhya Pradesh', 5, '2024-04-05', 'Regular'),
+(120, 'Priya Arora', 'Female', 'Chandigarh', 'Chandigarh', 1, '2024-02-21', 'Premium');
+
+-- ============================================================
+-- 3. DEPARTMENTS
+-- ============================================================
+DROP TABLE IF EXISTS departments;
+
+CREATE TABLE departments (
+    department_id INT,
+    department_name VARCHAR(50)
+);
+
+INSERT INTO departments (department_id, department_name) VALUES
+(1, 'Sales'),
+(2, 'Support'),
+(3, 'Warehouse'),
+(4, 'Finance'),
+(5, 'HR');
+
+-- ============================================================
+-- 4. EMPLOYEES
+-- Used for SELECT / FILTER / ORDER BY / CASE / RANKING
+-- ============================================================
+DROP TABLE IF EXISTS employees;
+
+CREATE TABLE employees (
+    employee_id INT,
+    employee_name VARCHAR(100),
+    department_id INT,
+    region_id INT,
+    designation VARCHAR(50),
+    salary DECIMAL(10,2),
+    bonus DECIMAL(10,2),
+    hire_date DATE,
+    performance_rating INT
+);
+
+INSERT INTO employees (employee_id, employee_name, department_id, region_id, designation, salary, bonus, hire_date, performance_rating) VALUES
+(201, 'Rakesh Gupta', 1, 1, 'Sales Executive', 45000, 5000, '2021-01-10', 4),
+(202, 'Simran Kaur', 1, 2, 'Sales Executive', 45000, 4500, '2021-03-14', 5),
+(203, 'Aditya Roy', 1, 3, 'Sales Manager', 70000, 12000, '2020-07-21', 5),
+(204, 'Bhavna Shah', 2, 4, 'Support Executive', 38000, 3000, '2022-02-11', 3),
+(205, 'Tarun Sethi', 2, 1, 'Support Lead', 52000, 6000, '2020-11-19', 4),
+(206, 'Leena Pillai', 3, 2, 'Warehouse Executive', 36000, 2500, '2023-01-05', 3),
+(207, 'Mohan Desai', 3, 4, 'Warehouse Lead', 52000, 5500, '2021-06-29', 4),
+(208, 'Farah Khan', 4, 5, 'Accountant', 60000, 8000, '2019-09-17', 5),
+(209, 'Deepak Rana', 4, 1, 'Finance Analyst', 60000, 7000, '2020-12-01', 4),
+(210, 'Komal Jain', 5, 5, 'HR Executive', 42000, 3500, '2022-08-23', 4),
+(211, 'Sanjay Iyer', 1, 5, 'Sales Executive', 45000, 4000, '2023-04-15', 3),
+(212, 'Asha Thomas', 2, 3, 'Support Executive', 38000, 3200, '2022-09-09', 5),
+(213, 'Yogesh Patil', 3, 5, 'Warehouse Executive', 36000, 2000, '2023-05-18', 2),
+(214, 'Nandini Rao', 1, 2, 'Sales Executive', 48000, 6000, '2021-10-10', 5),
+(215, 'Prakash More', 4, 4, 'Finance Analyst', 60000, 6500, '2021-12-12', 3);
+
+-- ============================================================
+-- 5. CATEGORIES
+-- ============================================================
+DROP TABLE IF EXISTS categories;
+
+CREATE TABLE categories (
+    category_id INT,
+    category_name VARCHAR(50)
+);
+
+INSERT INTO categories (category_id, category_name) VALUES
+(1, 'Electronics'),
+(2, 'Home Appliances'),
+(3, 'Furniture'),
+(4, 'Stationery'),
+(5, 'Accessories');
+
+-- ============================================================
+-- 6. PRODUCTS
+-- Used for JOIN, FILTER, ORDER BY, CASE, GROUP BY
+-- ============================================================
+DROP TABLE IF EXISTS products;
+
+CREATE TABLE products (
+    product_id INT,
+    product_name VARCHAR(100),
+    category_id INT,
+    brand_name VARCHAR(50),
+    unit_price DECIMAL(10,2),
+    stock_qty INT,
+    rating DECIMAL(3,1),
+    launch_date DATE
+);
+
+INSERT INTO products (product_id, product_name, category_id, brand_name, unit_price, stock_qty, rating, launch_date) VALUES
+(301, 'Laptop Pro 14', 1, 'TechOne', 65000, 25, 4.5, '2023-07-10'),
+(302, 'Laptop Air 13', 1, 'TechOne', 52000, 30, 4.2, '2023-09-15'),
+(303, 'Smartphone X', 1, 'MobiMax', 30000, 50, 4.4, '2024-01-05'),
+(304, 'Smartphone Lite', 1, 'MobiMax', 18000, 70, 4.1, '2024-02-10'),
+(305, 'Bluetooth Speaker', 5, 'SoundBeat', 2500, 120, 4.3, '2023-11-20'),
+(306, 'Wireless Earbuds', 5, 'SoundBeat', 3500, 95, 4.0, '2024-01-25'),
+(307, 'Mixer Grinder', 2, 'HomePro', 4200, 40, 4.1, '2023-08-18'),
+(308, 'Microwave Oven', 2, 'HomePro', 9000, 20, 4.4, '2023-12-01'),
+(309, 'Office Chair', 3, 'ComfortSeat', 7000, 35, 4.2, '2023-06-12'),
+(310, 'Study Table', 3, 'ComfortSeat', 8500, 18, 4.3, '2023-06-20'),
+(311, 'Notebook Pack', 4, 'WriteWell', 300, 250, 4.6, '2022-05-01'),
+(312, 'Gel Pen Set', 4, 'WriteWell', 180, 300, 4.5, '2022-07-15'),
+(313, 'Tablet 10', 1, 'TechOne', 22000, 28, 4.1, '2024-02-28'),
+(314, 'Air Purifier', 2, 'PureAir', 11000, 16, 4.5, '2024-01-19'),
+(315, 'Desk Lamp', 3, 'BrightHome', 1500, 60, 4.0, '2023-10-05');
+
+-- ============================================================
+-- 7. ORDERS
+-- Contains enough variety for filtering, ordering, grouping, case
+-- ============================================================
+DROP TABLE IF EXISTS orders;
+
+CREATE TABLE orders (
+    order_id INT,
+    customer_id INT,
+    employee_id INT,
+    order_date DATE,
+    ship_date DATE,
+    order_status VARCHAR(20),
+    payment_mode VARCHAR(20),
+    order_channel VARCHAR(20),
+    shipping_city VARCHAR(50)
+);
+
+INSERT INTO orders (order_id, customer_id, employee_id, order_date, ship_date, order_status, payment_mode, order_channel, shipping_city) VALUES
+(1001, 101, 201, '2024-05-01', '2024-05-03', 'Delivered', 'UPI', 'Online', 'Nagpur'),
+(1002, 102, 202, '2024-05-02', '2024-05-05', 'Delivered', 'Card', 'Online', 'Pune'),
+(1003, 103, 203, '2024-05-03', NULL, 'Pending', 'COD', 'Store', 'Delhi'),
+(1004, 104, 214, '2024-05-04', '2024-05-06', 'Delivered', 'UPI', 'Online', 'Chennai'),
+(1005, 105, 201, '2024-05-05', NULL, 'Cancelled', 'Card', 'Online', 'Ahmedabad'),
+(1006, 106, 203, '2024-05-06', '2024-05-09', 'Delivered', 'NetBanking', 'Store', 'Lucknow'),
+(1007, 107, 202, '2024-05-06', '2024-05-08', 'Delivered', 'UPI', 'Online', 'Hyderabad'),
+(1008, 108, 211, '2024-05-07', NULL, 'Pending', 'Card', 'Online', 'Kolkata'),
+(1009, 109, 214, '2024-05-08', '2024-05-12', 'Delivered', 'COD', 'Store', 'Jaipur'),
+(1010, 110, 203, '2024-05-08', '2024-05-11', 'Delivered', 'UPI', 'Online', 'Kochi'),
+(1011, 111, 201, '2024-05-09', NULL, 'Pending', 'Card', 'Store', 'Patna'),
+(1012, 112, 202, '2024-05-10', '2024-05-13', 'Delivered', 'UPI', 'Online', 'Bhopal'),
+(1013, 113, 203, '2024-05-10', '2024-05-14', 'Delivered', 'NetBanking', 'Online', 'Delhi'),
+(1014, 114, 211, '2024-05-11', NULL, 'Cancelled', 'COD', 'Store', 'Surat'),
+(1015, 115, 214, '2024-05-12', '2024-05-15', 'Delivered', 'Card', 'Online', 'Varanasi'),
+(1016, 116, 201, '2024-05-12', '2024-05-14', 'Delivered', 'UPI', 'Store', 'Ranchi'),
+(1017, 117, 202, '2024-05-13', NULL, 'Pending', 'UPI', 'Online', 'Mumbai'),
+(1018, 118, 214, '2024-05-14', '2024-05-18', 'Delivered', 'Card', 'Online', 'Kolkata'),
+(1019, 119, 203, '2024-05-15', '2024-05-17', 'Delivered', 'COD', 'Store', 'Indore'),
+(1020, 120, 211, '2024-05-16', NULL, 'Pending', 'UPI', 'Online', 'Chandigarh'),
+(1021, 101, 201, '2024-05-17', '2024-05-20', 'Delivered', 'Card', 'Store', 'Nagpur'),
+(1022, 103, 202, '2024-05-18', '2024-05-21', 'Delivered', 'UPI', 'Online', 'Delhi'),
+(1023, 105, 214, '2024-05-19', NULL, 'Cancelled', 'NetBanking', 'Online', 'Ahmedabad'),
+(1024, 108, 203, '2024-05-20', '2024-05-22', 'Delivered', 'Card', 'Store', 'Kolkata'),
+(1025, 110, 211, '2024-05-21', NULL, 'Pending', 'COD', 'Online', 'Kochi');
+
+-- ============================================================
+-- 8. ORDER_ITEMS
+-- Main fact-style table for joins, group by, case, ranking
+-- ============================================================
+DROP TABLE IF EXISTS order_items;
+
+CREATE TABLE order_items (
+    order_item_id INT,
+    order_id INT,
+    product_id INT,
+    quantity INT,
+    unit_price DECIMAL(10,2),
+    discount_pct DECIMAL(5,2)
+);
+
+INSERT INTO order_items (order_item_id, order_id, product_id, quantity, unit_price, discount_pct) VALUES
+(1, 1001, 301, 1, 65000, 10.00),
+(2, 1001, 305, 2, 2500, 5.00),
+
+(3, 1002, 303, 1, 30000, 8.00),
+(4, 1002, 312, 5, 180, 0.00),
+
+(5, 1003, 309, 1, 7000, 12.00),
+(6, 1003, 311, 10, 300, 5.00),
+
+(7, 1004, 308, 1, 9000, 15.00),
+(8, 1004, 315, 2, 1500, 0.00),
+
+(9, 1005, 304, 2, 18000, 10.00),
+
+(10, 1006, 307, 1, 4200, 5.00),
+(11, 1006, 305, 1, 2500, 0.00),
+
+(12, 1007, 303, 2, 30000, 7.50),
+
+(13, 1008, 314, 1, 11000, 10.00),
+
+(14, 1009, 310, 1, 8500, 5.00),
+(15, 1009, 315, 1, 1500, 0.00),
+
+(16, 1010, 306, 2, 3500, 10.00),
+(17, 1010, 313, 1, 22000, 8.00),
+
+(18, 1011, 311, 15, 300, 2.00),
+
+(19, 1012, 302, 1, 52000, 12.00),
+
+(20, 1013, 301, 1, 65000, 5.00),
+(21, 1013, 306, 1, 3500, 0.00),
+
+(22, 1014, 307, 2, 4200, 10.00),
+
+(23, 1015, 314, 1, 11000, 0.00),
+(24, 1015, 305, 3, 2500, 5.00),
+
+(25, 1016, 309, 2, 7000, 15.00),
+
+(26, 1017, 304, 1, 18000, 0.00),
+(27, 1017, 312, 8, 180, 0.00),
+
+(28, 1018, 303, 1, 30000, 10.00),
+(29, 1018, 311, 20, 300, 3.00),
+
+(30, 1019, 308, 1, 9000, 0.00),
+(31, 1019, 315, 4, 1500, 10.00),
+
+(32, 1020, 313, 1, 22000, 5.00),
+
+(33, 1021, 305, 5, 2500, 10.00),
+(34, 1021, 311, 10, 300, 0.00),
+
+(35, 1022, 301, 1, 65000, 15.00),
+
+(36, 1023, 314, 1, 11000, 0.00),
+
+(37, 1024, 303, 1, 30000, 5.00),
+(38, 1024, 306, 2, 3500, 5.00),
+
+(39, 1025, 310, 1, 8500, 0.00),
+(40, 1025, 312, 12, 180, 0.00);
+
+-- ============================================================
+-- OPTIONAL QUICK CHECK QUERIES
+-- Uncomment when you want to verify the data loaded properly.
+-- ============================================================
+-- SELECT * FROM customers;
+-- SELECT * FROM employees;
+-- SELECT * FROM products;
+-- SELECT * FROM orders;
+-- SELECT * FROM order_items;
+
+-- ============================================================
+-- NOTES ABOUT WHY THIS DATASET IS GOOD FOR THE 50 EXERCISES
+-- ============================================================
+-- 1. SELECT:
+--    You can project simple columns from any table.
+--
+-- 2. FILTER:
+--    You can filter by:
+--    - order_status
+--    - payment_mode
+--    - city / state_name / region_id
+--    - salary / bonus / rating / stock_qty / launch_date
+--    - NULL ship_date values
+--
+-- 3. GROUP BY:
+--    You can group by:
+--    - customer_type
+--    - category_id / brand_name
+--    - payment_mode / order_channel / order_status
+--    - region_id / department_id
+--
+-- 4. ORDER BY:
+--    You can sort by:
+--    - salary, bonus, unit_price, rating
+--    - dates
+--    - text columns
+--    - expressions
+--
+-- 5. CASE:
+--    You can classify:
+--    - employees into high/medium/low salary
+--    - products into premium/standard/budget
+--    - orders into shipped/unshipped
+--    - customers into old/new signups
+--
+-- 6. JOINS:
+--    Useful join paths:
+--    - customers -> orders
+--    - employees -> departments
+--    - employees -> regions
+--    - products -> categories
+--    - orders -> order_items
+--    - order_items -> products
+--    - orders -> customers
+--    - orders -> employees
+--
+-- 7. RANKING FUNCTIONS:
+--    Good columns for ties:
+--    - employees.salary
+--    - employees.bonus
+--    - products.unit_price
+--    - product/category sales totals after GROUP BY
+--
+-- ============================================================
+-- END OF SCRIPT
+-- ============================================================
