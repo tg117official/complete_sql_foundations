@@ -1,0 +1,412 @@
+-- =========================================================
+-- WINDOW AGGREGATE FUNCTIONS PRACTICE SCRIPT
+-- Topics:
+-- 1. UNBOUNDED PRECEDING
+-- 2. CURRENT ROW
+-- 3. UNBOUNDED FOLLOWING
+-- =========================================================
+
+-- =========================================================
+-- 1. CREATE DATABASE
+-- =========================================================
+CREATE DATABASE IF NOT EXISTS window_agg_practice;
+USE window_agg_practice;
+
+-- =========================================================
+-- 2. DROP TABLE IF EXISTS
+-- =========================================================
+DROP TABLE IF EXISTS sales_data;
+
+-- =========================================================
+-- 3. CREATE TABLE
+-- =========================================================
+CREATE TABLE sales_data (
+    sale_id INT PRIMARY KEY,
+    sales_person VARCHAR(50),
+    region VARCHAR(50),
+    product_category VARCHAR(50),
+    sale_date DATE,
+    amount DECIMAL(10,2),
+    quantity INT
+);
+
+-- =========================================================
+-- 4. INSERT DATA
+-- =========================================================
+INSERT INTO sales_data (sale_id, sales_person, region, product_category, sale_date, amount, quantity) VALUES
+(1,  'Amit',   'North', 'Electronics', '2024-01-05', 1200.00, 2),
+(2,  'Amit',   'North', 'Furniture',   '2024-01-10', 3000.00, 1),
+(3,  'Amit',   'North', 'Electronics', '2024-01-15', 1800.00, 3),
+(4,  'Amit',   'North', 'Clothing',    '2024-01-20',  900.00, 4),
+
+(5,  'Neha',   'North', 'Electronics', '2024-01-03', 1500.00, 1),
+(6,  'Neha',   'North', 'Furniture',   '2024-01-12', 2500.00, 2),
+(7,  'Neha',   'North', 'Clothing',    '2024-01-18', 1100.00, 5),
+(8,  'Neha',   'North', 'Electronics', '2024-01-25', 2200.00, 2),
+
+(9,  'Raj',    'West',  'Electronics', '2024-01-04', 1300.00, 2),
+(10, 'Raj',    'West',  'Furniture',   '2024-01-11', 2700.00, 1),
+(11, 'Raj',    'West',  'Clothing',    '2024-01-17',  800.00, 3),
+(12, 'Raj',    'West',  'Electronics', '2024-01-28', 2100.00, 2),
+
+(13, 'Sneha',  'West',  'Furniture',   '2024-01-06', 3200.00, 1),
+(14, 'Sneha',  'West',  'Clothing',    '2024-01-13', 1000.00, 4),
+(15, 'Sneha',  'West',  'Electronics', '2024-01-19', 1700.00, 2),
+(16, 'Sneha',  'West',  'Furniture',   '2024-01-30', 2800.00, 1),
+
+(17, 'Vikas',  'South', 'Electronics', '2024-01-02', 1600.00, 2),
+(18, 'Vikas',  'South', 'Furniture',   '2024-01-09', 2600.00, 1),
+(19, 'Vikas',  'South', 'Clothing',    '2024-01-16',  950.00, 3),
+(20, 'Vikas',  'South', 'Electronics', '2024-01-24', 2300.00, 2),
+
+(21, 'Pooja',  'South', 'Furniture',   '2024-01-07', 3100.00, 1),
+(22, 'Pooja',  'South', 'Clothing',    '2024-01-14', 1050.00, 4),
+(23, 'Pooja',  'South', 'Electronics', '2024-01-21', 1900.00, 2),
+(24, 'Pooja',  'South', 'Furniture',   '2024-01-29', 2900.00, 1);
+
+-- =========================================================
+-- QUESTION 1
+-- Running total of sales amount for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    amount,
+    SUM(amount) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_total_amount
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 2
+-- Running total of quantity sold for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    quantity,
+    SUM(quantity) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_total_quantity
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 3
+-- Running average of amount within each region
+-- =========================================================
+SELECT
+    sale_id,
+    region,
+    sale_date,
+    amount,
+    AVG(amount) OVER (
+        PARTITION BY region
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_avg_amount
+FROM sales_data
+ORDER BY region, sale_date;
+
+-- =========================================================
+-- QUESTION 4
+-- Running minimum amount for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    amount,
+    MIN(amount) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_min_amount
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 5
+-- Running maximum quantity for each region
+-- =========================================================
+SELECT
+    sale_id,
+    region,
+    sale_date,
+    quantity,
+    MAX(quantity) OVER (
+        PARTITION BY region
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_max_quantity
+FROM sales_data
+ORDER BY region, sale_date;
+
+-- =========================================================
+-- QUESTION 6
+-- Total amount from current row to last row for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    amount,
+    SUM(amount) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+    ) AS current_to_end_total_amount
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 7
+-- Total quantity from current row to end within each region
+-- =========================================================
+SELECT
+    sale_id,
+    region,
+    sale_date,
+    quantity,
+    SUM(quantity) OVER (
+        PARTITION BY region
+        ORDER BY sale_date
+        ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+    ) AS current_to_end_total_quantity
+FROM sales_data
+ORDER BY region, sale_date;
+
+-- =========================================================
+-- QUESTION 8
+-- Average amount from current row to end for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    amount,
+    AVG(amount) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+    ) AS current_to_end_avg_amount
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 9
+-- Minimum amount from current row to end within each region
+-- =========================================================
+SELECT
+    sale_id,
+    region,
+    sale_date,
+    amount,
+    MIN(amount) OVER (
+        PARTITION BY region
+        ORDER BY sale_date
+        ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+    ) AS current_to_end_min_amount
+FROM sales_data
+ORDER BY region, sale_date;
+
+-- =========================================================
+-- QUESTION 10
+-- Maximum quantity from current row to end for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    quantity,
+    MAX(quantity) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+    ) AS current_to_end_max_quantity
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 11
+-- Total sales amount across the full partition for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    amount,
+    SUM(amount) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS full_partition_total_amount
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 12
+-- Total quantity across the full partition for each region
+-- =========================================================
+SELECT
+    sale_id,
+    region,
+    sale_date,
+    quantity,
+    SUM(quantity) OVER (
+        PARTITION BY region
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS full_partition_total_quantity
+FROM sales_data
+ORDER BY region, sale_date;
+
+-- =========================================================
+-- QUESTION 13
+-- Average sale amount across the full partition for each product category
+-- =========================================================
+SELECT
+    sale_id,
+    product_category,
+    sale_date,
+    amount,
+    AVG(amount) OVER (
+        PARTITION BY product_category
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS full_partition_avg_amount
+FROM sales_data
+ORDER BY product_category, sale_date;
+
+-- =========================================================
+-- QUESTION 14
+-- Minimum amount across full partition for each region
+-- =========================================================
+SELECT
+    sale_id,
+    region,
+    sale_date,
+    amount,
+    MIN(amount) OVER (
+        PARTITION BY region
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS full_partition_min_amount
+FROM sales_data
+ORDER BY region, sale_date;
+
+-- =========================================================
+-- QUESTION 15
+-- Maximum amount across full partition for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    amount,
+    MAX(amount) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS full_partition_max_amount
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 16
+-- Count of rows from start to current row for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    COUNT(*) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_row_count
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 17
+-- Count of rows from current row to end for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    COUNT(*) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+    ) AS current_to_end_row_count
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 18
+-- Count of rows in the full partition for each region
+-- =========================================================
+SELECT
+    sale_id,
+    region,
+    sale_date,
+    COUNT(*) OVER (
+        PARTITION BY region
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS full_partition_row_count
+FROM sales_data
+ORDER BY region, sale_date;
+
+-- =========================================================
+-- QUESTION 19
+-- Compare running total with full partition total for each salesperson
+-- =========================================================
+SELECT
+    sale_id,
+    sales_person,
+    sale_date,
+    amount,
+    SUM(amount) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_total_amount,
+    SUM(amount) OVER (
+        PARTITION BY sales_person
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS full_partition_total_amount
+FROM sales_data
+ORDER BY sales_person, sale_date;
+
+-- =========================================================
+-- QUESTION 20
+-- Compare current-to-end total with full partition total for each region
+-- =========================================================
+SELECT
+    sale_id,
+    region,
+    sale_date,
+    amount,
+    SUM(amount) OVER (
+        PARTITION BY region
+        ORDER BY sale_date
+        ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+    ) AS current_to_end_total_amount,
+    SUM(amount) OVER (
+        PARTITION BY region
+        ORDER BY sale_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) AS full_partition_total_amount
+FROM sales_data
+ORDER BY region, sale_date;
