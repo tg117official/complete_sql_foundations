@@ -1,0 +1,449 @@
+-- =========================================================
+-- MYSQL SET OPERATIONS - CLASSROOM FRIENDLY SCRIPT
+-- Topics Covered:
+-- 1. UNION
+-- 2. UNION ALL
+-- 3. INTERSECT concept using INNER JOIN
+-- 4. EXCEPT concept using LEFT JOIN
+--
+-- Note:
+-- MySQL directly supports UNION and UNION ALL.
+-- INTERSECT and EXCEPT are demonstrated here using JOINs,
+-- because subqueries are intentionally avoided.
+-- =========================================================
+
+-- =========================================================
+-- STEP 1: CREATE DATABASE
+-- =========================================================
+CREATE DATABASE IF NOT EXISTS set_operations_practice;
+USE set_operations_practice;
+
+-- =========================================================
+-- STEP 2: DROP TABLES IF THEY ALREADY EXIST
+-- =========================================================
+DROP TABLE IF EXISTS employees_branch_a;
+DROP TABLE IF EXISTS employees_branch_b;
+
+-- =========================================================
+-- STEP 3: CREATE TABLES
+-- Both tables have same number of columns and same data types
+-- This is important for UNION / UNION ALL
+-- =========================================================
+CREATE TABLE employees_branch_a (
+    emp_id INT,
+    emp_name VARCHAR(100),
+    department VARCHAR(50),
+    city VARCHAR(50),
+    salary DECIMAL(10,2)
+);
+
+CREATE TABLE employees_branch_b (
+    emp_id INT,
+    emp_name VARCHAR(100),
+    department VARCHAR(50),
+    city VARCHAR(50),
+    salary DECIMAL(10,2)
+);
+
+-- =========================================================
+-- STEP 4: INSERT DATA INTO BRANCH A
+-- =========================================================
+INSERT INTO employees_branch_a (emp_id, emp_name, department, city, salary) VALUES
+(101, 'Amit Sharma',    'IT',      'Pune',      55000.00),
+(102, 'Neha Verma',     'HR',      'Mumbai',    48000.00),
+(103, 'Rohit Mehta',    'Sales',   'Nagpur',    45000.00),
+(104, 'Priya Nair',     'Finance', 'Bangalore', 62000.00),
+(105, 'Karan Singh',    'IT',      'Delhi',     58000.00),
+(106, 'Sneha Joshi',    'Support', 'Pune',      39000.00),
+(107, 'Arjun Patel',    'Sales',   'Ahmedabad', 47000.00),
+(108, 'Pooja Desai',    'HR',      'Surat',     50000.00),
+(109, 'Vikas Rao',      'Finance', 'Chennai',   61000.00),
+(110, 'Anjali Gupta',   'IT',      'Hyderabad', 57000.00),
+(111, 'Rahul Yadav',    'Support', 'Indore',    40000.00),
+(112, 'Meera Iyer',     'Sales',   'Kolkata',   46000.00);
+
+-- =========================================================
+-- STEP 5: INSERT DATA INTO BRANCH B
+-- A few rows are exactly common in both tables
+-- Some rows are unique
+-- =========================================================
+INSERT INTO employees_branch_b (emp_id, emp_name, department, city, salary) VALUES
+(108, 'Pooja Desai',     'HR',      'Surat',     50000.00),
+(109, 'Vikas Rao',       'Finance', 'Chennai',   61000.00),
+(110, 'Anjali Gupta',    'IT',      'Hyderabad', 57000.00),
+(113, 'Sanjay Kulkarni', 'IT',      'Pune',      56000.00),
+(114, 'Ritika Sen',      'HR',      'Delhi',     49000.00),
+(115, 'Manoj Das',       'Sales',   'Nagpur',    45000.00),
+(116, 'Kavita Roy',      'Finance', 'Mumbai',    64000.00),
+(117, 'Deepak Jain',     'Support', 'Jaipur',    41000.00),
+(118, 'Nisha Kapoor',    'IT',      'Noida',     59000.00),
+(119, 'Harsh Vardhan',   'Sales',   'Lucknow',   47000.00),
+(120, 'Swati Mishra',    'Support', 'Bhopal',    39500.00),
+(121, 'Gaurav Sinha',    'Finance', 'Patna',     60500.00);
+
+-- =========================================================
+-- OPTIONAL: VIEW TABLE DATA
+-- =========================================================
+SELECT * FROM employees_branch_a;
+SELECT * FROM employees_branch_b;
+
+-- =========================================================
+-- EXERCISE 1
+-- Problem:
+-- Show all employees from both branches without duplicate rows.
+--
+-- Concept:
+-- UNION removes duplicate rows.
+-- =========================================================
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_a
+UNION
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_b;
+
+-- =========================================================
+-- EXERCISE 2
+-- Problem:
+-- Show all employees from both branches including duplicate rows.
+--
+-- Concept:
+-- UNION ALL keeps duplicate rows.
+-- =========================================================
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_a
+UNION ALL
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_b;
+
+-- =========================================================
+-- EXERCISE 3
+-- Problem:
+-- Show only employee names from both branches without duplicates.
+--
+-- Concept:
+-- UNION can be applied on selected columns also.
+-- =========================================================
+SELECT emp_name
+FROM employees_branch_a
+UNION
+SELECT emp_name
+FROM employees_branch_b;
+
+-- =========================================================
+-- EXERCISE 4
+-- Problem:
+-- Show only department names from both branches including duplicates.
+--
+-- Concept:
+-- UNION ALL keeps repeated department names.
+-- =========================================================
+SELECT department
+FROM employees_branch_a
+UNION ALL
+SELECT department
+FROM employees_branch_b;
+
+-- =========================================================
+-- EXERCISE 5
+-- Problem:
+-- Show unique cities in which employees are present across both branches.
+--
+-- Concept:
+-- UNION removes repeated city names.
+-- =========================================================
+SELECT city
+FROM employees_branch_a
+UNION
+SELECT city
+FROM employees_branch_b;
+
+-- =========================================================
+-- EXERCISE 6
+-- Problem:
+-- Show all salaries from both branches including duplicates.
+-- =========================================================
+SELECT salary
+FROM employees_branch_a
+UNION ALL
+SELECT salary
+FROM employees_branch_b;
+
+-- =========================================================
+-- EXERCISE 7
+-- Problem:
+-- Show all IT employees from both branches without duplicates.
+--
+-- Concept:
+-- WHERE clause can be used before UNION.
+-- =========================================================
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_a
+WHERE department = 'IT'
+UNION
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_b
+WHERE department = 'IT';
+
+-- =========================================================
+-- EXERCISE 8
+-- Problem:
+-- Show all Sales employees from both branches including duplicates.
+-- =========================================================
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_a
+WHERE department = 'Sales'
+UNION ALL
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_b
+WHERE department = 'Sales';
+
+-- =========================================================
+-- EXERCISE 9
+-- Problem:
+-- Show employee IDs from both branches without duplicates in ascending order.
+--
+-- Concept:
+-- ORDER BY is applied at the end of the full UNION result.
+-- =========================================================
+SELECT emp_id
+FROM employees_branch_a
+UNION
+SELECT emp_id
+FROM employees_branch_b
+ORDER BY emp_id ASC;
+
+-- =========================================================
+-- EXERCISE 10
+-- Problem:
+-- Show employee names from both branches including duplicates,
+-- sorted alphabetically.
+-- =========================================================
+SELECT emp_name
+FROM employees_branch_a
+UNION ALL
+SELECT emp_name
+FROM employees_branch_b
+ORDER BY emp_name ASC;
+
+-- =========================================================
+-- EXERCISE 11
+-- Problem:
+-- Show all employees from Pune and Nagpur from both branches
+-- without duplicates.
+-- =========================================================
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_a
+WHERE city IN ('Pune', 'Nagpur')
+UNION
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_b
+WHERE city IN ('Pune', 'Nagpur');
+
+-- =========================================================
+-- EXERCISE 12
+-- Problem:
+-- Show all employees whose salary is greater than 50000
+-- from both branches including duplicates.
+-- =========================================================
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_a
+WHERE salary > 50000
+UNION ALL
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_b
+WHERE salary > 50000;
+
+-- =========================================================
+-- EXERCISE 13
+-- Problem:
+-- Show unique department and city combinations across both branches.
+--
+-- Concept:
+-- Duplicate removal happens on the full row combination.
+-- =========================================================
+SELECT department, city
+FROM employees_branch_a
+UNION
+SELECT department, city
+FROM employees_branch_b;
+
+-- =========================================================
+-- EXERCISE 14
+-- Problem:
+-- Show department and city combinations across both branches
+-- including duplicates.
+-- =========================================================
+SELECT department, city
+FROM employees_branch_a
+UNION ALL
+SELECT department, city
+FROM employees_branch_b;
+
+-- =========================================================
+-- EXERCISE 15
+-- Problem:
+-- Show employees who are exactly common in both branches.
+--
+-- Concept:
+-- INTERSECT concept using INNER JOIN.
+-- Since same row must be present in both tables, all columns
+-- are matched.
+-- =========================================================
+SELECT a.emp_id, a.emp_name, a.department, a.city, a.salary
+FROM employees_branch_a a
+INNER JOIN employees_branch_b b
+    ON a.emp_id = b.emp_id
+   AND a.emp_name = b.emp_name
+   AND a.department = b.department
+   AND a.city = b.city
+   AND a.salary = b.salary;
+
+-- =========================================================
+-- EXERCISE 16
+-- Problem:
+-- Show employees present in branch A but not in branch B.
+--
+-- Concept:
+-- EXCEPT concept using LEFT JOIN.
+-- If matching row is not found in branch B, it means
+-- that row exists only in branch A.
+-- =========================================================
+SELECT a.emp_id, a.emp_name, a.department, a.city, a.salary
+FROM employees_branch_a a
+LEFT JOIN employees_branch_b b
+    ON a.emp_id = b.emp_id
+   AND a.emp_name = b.emp_name
+   AND a.department = b.department
+   AND a.city = b.city
+   AND a.salary = b.salary
+WHERE b.emp_id IS NULL;
+
+-- =========================================================
+-- EXERCISE 17
+-- Problem:
+-- Show employees present in branch B but not in branch A.
+--
+-- Concept:
+-- Reverse of previous exercise.
+-- =========================================================
+SELECT b.emp_id, b.emp_name, b.department, b.city, b.salary
+FROM employees_branch_b b
+LEFT JOIN employees_branch_a a
+    ON b.emp_id = a.emp_id
+   AND b.emp_name = a.emp_name
+   AND b.department = a.department
+   AND b.city = a.city
+   AND b.salary = a.salary
+WHERE a.emp_id IS NULL;
+
+-- =========================================================
+-- EXERCISE 18
+-- Problem:
+-- Show departments common in both branches.
+--
+-- Concept:
+-- INTERSECT idea on a single column using INNER JOIN.
+-- DISTINCT is used to avoid repeated department names.
+-- =========================================================
+SELECT DISTINCT a.department
+FROM employees_branch_a a
+INNER JOIN employees_branch_b b
+    ON a.department = b.department;
+
+-- =========================================================
+-- EXERCISE 19
+-- Problem:
+-- Show cities common in both branches.
+-- =========================================================
+SELECT DISTINCT a.city
+FROM employees_branch_a a
+INNER JOIN employees_branch_b b
+    ON a.city = b.city;
+
+-- =========================================================
+-- EXERCISE 20
+-- Problem:
+-- Show department and city combinations present in branch A
+-- but not in branch B.
+--
+-- Concept:
+-- EXCEPT idea on multiple columns using LEFT JOIN.
+-- =========================================================
+SELECT DISTINCT a.department, a.city
+FROM employees_branch_a a
+LEFT JOIN employees_branch_b b
+    ON a.department = b.department
+   AND a.city = b.city
+WHERE b.department IS NULL;
+
+-- =========================================================
+-- EXERCISE 21
+-- Problem:
+-- Show all HR and Finance employees from both branches
+-- without duplicates.
+-- =========================================================
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_a
+WHERE department IN ('HR', 'Finance')
+UNION
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_b
+WHERE department IN ('HR', 'Finance');
+
+-- =========================================================
+-- EXERCISE 22
+-- Problem:
+-- Show all Support employees from both branches
+-- including duplicates.
+-- =========================================================
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_a
+WHERE department = 'Support'
+UNION ALL
+SELECT emp_id, emp_name, department, city, salary
+FROM employees_branch_b
+WHERE department = 'Support';
+
+-- =========================================================
+-- EXERCISE 23
+-- Problem:
+-- Show all cities from both branches in sorted order
+-- without duplicates.
+-- =========================================================
+SELECT city
+FROM employees_branch_a
+UNION
+SELECT city
+FROM employees_branch_b
+ORDER BY city ASC;
+
+-- =========================================================
+-- EXERCISE 24
+-- Problem:
+-- Show all department names from both branches in sorted order
+-- including duplicates.
+-- =========================================================
+SELECT department
+FROM employees_branch_a
+UNION ALL
+SELECT department
+FROM employees_branch_b
+ORDER BY department ASC;
+
+-- =========================================================
+-- EXERCISE 25
+-- Problem:
+-- Show salaries that are exactly common in both branches.
+--
+-- Concept:
+-- INTERSECT idea using INNER JOIN on one column.
+-- DISTINCT is used to avoid repeated salary values.
+-- =========================================================
+SELECT DISTINCT a.salary
+FROM employees_branch_a a
+INNER JOIN employees_branch_b b
+    ON a.salary = b.salary;
+
+-- =========================================================
+-- END OF SCRIPT
+-- =========================================================
