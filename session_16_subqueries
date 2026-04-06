@@ -1,0 +1,242 @@
+-- =========================================================
+-- MYSQL SCRIPT FOR SUBQUERY PRACTICE
+-- =========================================================
+
+-- Create database
+CREATE DATABASE IF NOT EXISTS subquery_demo_db;
+
+-- Use database
+USE subquery_demo_db;
+
+-- =========================================================
+-- 1. CREATE DEPARTMENT TABLE
+-- =========================================================
+CREATE TABLE departments (
+    dept_id INT PRIMARY KEY,
+    dept_name VARCHAR(50),
+    location VARCHAR(50)
+);
+
+-- =========================================================
+-- 2. CREATE EMPLOYEE TABLE
+-- =========================================================
+CREATE TABLE employees (
+    emp_id INT PRIMARY KEY,
+    emp_name VARCHAR(100),
+    gender VARCHAR(10),
+    age INT,
+    job_title VARCHAR(50),
+    salary DECIMAL(10,2),
+    dept_id INT,
+    manager_id INT,
+    join_date DATE,
+    city VARCHAR(50),
+    FOREIGN KEY (dept_id) REFERENCES departments(dept_id)
+);
+
+-- =========================================================
+-- 3. INSERT DATA INTO DEPARTMENTS
+-- =========================================================
+INSERT INTO departments (dept_id, dept_name, location) VALUES
+(1, 'HR', 'Mumbai'),
+(2, 'IT', 'Pune'),
+(3, 'Finance', 'Delhi'),
+(4, 'Sales', 'Bangalore'),
+(5, 'Operations', 'Hyderabad');
+
+-- =========================================================
+-- 4. INSERT DATA INTO EMPLOYEES
+-- =========================================================
+INSERT INTO employees (emp_id, emp_name, gender, age, job_title, salary, dept_id, manager_id, join_date, city) VALUES
+(101, 'Amit Sharma', 'Male', 32, 'HR Executive', 45000.00, 1, 110, '2021-01-15', 'Mumbai'),
+(102, 'Neha Verma', 'Female', 29, 'HR Associate', 42000.00, 1, 110, '2022-03-10', 'Mumbai'),
+(103, 'Rohit Patil', 'Male', 35, 'Software Engineer', 70000.00, 2, 111, '2020-06-18', 'Pune'),
+(104, 'Sneha Iyer', 'Female', 28, 'Software Engineer', 72000.00, 2, 111, '2021-09-25', 'Pune'),
+(105, 'Karan Mehta', 'Male', 31, 'Senior Developer', 95000.00, 2, 111, '2019-11-11', 'Pune'),
+(106, 'Pooja Nair', 'Female', 30, 'Accountant', 58000.00, 3, 112, '2020-02-20', 'Delhi'),
+(107, 'Vikas Rao', 'Male', 40, 'Finance Analyst', 67000.00, 3, 112, '2018-07-14', 'Delhi'),
+(108, 'Meena Joshi', 'Female', 27, 'Sales Executive', 50000.00, 4, 113, '2022-05-05', 'Bangalore'),
+(109, 'Arjun Singh', 'Male', 33, 'Sales Manager', 88000.00, 4, 113, '2019-08-19', 'Bangalore'),
+(110, 'Priya Desai', 'Female', 45, 'HR Manager', 98000.00, 1, NULL, '2015-04-01', 'Mumbai'),
+(111, 'Sandeep Kulkarni', 'Male', 42, 'IT Manager', 120000.00, 2, NULL, '2014-12-12', 'Pune'),
+(112, 'Anjali Kapoor', 'Female', 39, 'Finance Manager', 110000.00, 3, NULL, '2016-03-17', 'Delhi'),
+(113, 'Ramesh Gowda', 'Male', 44, 'Regional Sales Manager', 115000.00, 4, NULL, '2013-10-30', 'Bangalore'),
+(114, 'Tina George', 'Female', 26, 'Operations Executive', 43000.00, 5, 115, '2023-01-09', 'Hyderabad'),
+(115, 'Manoj Reddy', 'Male', 38, 'Operations Manager', 90000.00, 5, NULL, '2017-06-23', 'Hyderabad'),
+(116, 'Kavita Singh', 'Female', 29, 'Support Engineer', 55000.00, 2, 111, '2022-07-21', 'Pune'),
+(117, 'Deepak Yadav', 'Male', 34, 'System Admin', 60000.00, 2, 111, '2021-11-01', 'Pune'),
+(118, 'Nisha Arora', 'Female', 31, 'HR Specialist', 47000.00, 1, 110, '2020-10-14', 'Mumbai'),
+(119, 'Rahul Jain', 'Male', 36, 'Finance Executive', 62000.00, 3, 112, '2019-01-28', 'Delhi'),
+(120, 'Simran Kaur', 'Female', 25, 'Sales Associate', 41000.00, 4, 113, '2023-04-12', 'Bangalore'),
+(121, 'Yogesh More', 'Male', 28, 'Operations Analyst', 48000.00, 5, 115, '2022-09-15', 'Hyderabad'),
+(122, 'Farah Khan', 'Female', 30, 'Data Analyst', 68000.00, 2, 111, '2021-08-08', 'Pune'),
+(123, 'Nitin Sharma', 'Male', 37, 'Recruiter', 46000.00, 1, 110, '2018-05-16', 'Mumbai'),
+(124, 'Asha Menon', 'Female', 33, 'Internal Auditor', 75000.00, 3, 112, '2020-12-02', 'Delhi'),
+(125, 'Prakash Naidu', 'Male', 29, 'Sales Coordinator', 44000.00, 4, 113, '2022-11-19', 'Bangalore');
+
+
+-- =========================================================
+-- 10 BASIC SUBQUERY EXERCISES WITH SOLUTIONS
+-- Based on:
+-- departments
+-- employees
+-- =========================================================
+
+USE subquery_demo_db;
+
+-- =========================================================
+-- EXERCISE 1
+-- Find employees whose salary is greater than the average salary
+-- of all employees.
+-- =========================================================
+SELECT emp_id, emp_name, salary
+FROM employees
+WHERE salary > (
+    SELECT AVG(salary)
+    FROM employees
+);
+
+-- =========================================================
+-- EXERCISE 2
+-- Find employees who work in the IT department.
+-- =========================================================
+SELECT emp_id, emp_name, dept_id
+FROM employees
+WHERE dept_id = (
+    SELECT dept_id
+    FROM departments
+    WHERE dept_name = 'IT'
+);
+
+-- =========================================================
+-- EXERCISE 3
+-- Find employees who work in departments located in Mumbai.
+-- =========================================================
+SELECT emp_id, emp_name, dept_id
+FROM employees
+WHERE dept_id IN (
+    SELECT dept_id
+    FROM departments
+    WHERE location = 'Mumbai'
+);
+
+-- =========================================================
+-- EXERCISE 4
+-- Find employees whose salary is greater than the salary of
+-- employee 'Neha Verma'.
+-- =========================================================
+SELECT emp_id, emp_name, salary
+FROM employees
+WHERE salary > (
+    SELECT salary
+    FROM employees
+    WHERE emp_name = 'Neha Verma'
+);
+
+-- =========================================================
+-- EXERCISE 5
+-- Find employees who are managers.
+-- manager_id of some employees points to emp_id of managers.
+-- =========================================================
+SELECT emp_id, emp_name, job_title
+FROM employees
+WHERE emp_id IN (
+    SELECT DISTINCT manager_id
+    FROM employees
+    WHERE manager_id IS NOT NULL
+);
+
+-- =========================================================
+-- EXERCISE 6
+-- Find employees who are not managers.
+-- =========================================================
+SELECT emp_id, emp_name, job_title
+FROM employees
+WHERE emp_id NOT IN (
+    SELECT DISTINCT manager_id
+    FROM employees
+    WHERE manager_id IS NOT NULL
+);
+
+-- =========================================================
+-- EXERCISE 7
+-- Find employees who earn the highest salary in the company.
+-- =========================================================
+SELECT emp_id, emp_name, salary
+FROM employees
+WHERE salary = (
+    SELECT MAX(salary)
+    FROM employees
+);
+
+-- =========================================================
+-- EXERCISE 8
+-- Find employees whose salary is higher than the average salary
+-- of their own department.
+-- Correlated subquery example.
+-- =========================================================
+SELECT e1.emp_id, e1.emp_name, e1.salary, e1.dept_id
+FROM employees e1
+WHERE e1.salary > (
+    SELECT AVG(e2.salary)
+    FROM employees e2
+    WHERE e2.dept_id = e1.dept_id
+);
+
+-- =========================================================
+-- EXERCISE 9
+-- Find departments that have at least 4 employees.
+-- Subquery in FROM clause.
+-- =========================================================
+SELECT dept_id, total_employees
+FROM (
+    SELECT dept_id, COUNT(*) AS total_employees
+    FROM employees
+    GROUP BY dept_id
+) AS dept_count
+WHERE total_employees >= 4;
+
+-- =========================================================
+-- EXERCISE 10
+-- Find employees whose salary is greater than ALL salaries
+-- of employees in the HR department.
+-- =========================================================
+SELECT emp_id, emp_name, salary
+FROM employees
+WHERE salary > ALL (
+    SELECT salary
+    FROM employees
+    WHERE dept_id = (
+        SELECT dept_id
+        FROM departments
+        WHERE dept_name = 'HR'
+    )
+);
+
+-- =========================================================
+-- OPTIONAL EXTRA PRACTICE 1
+-- Find employees whose salary is greater than ANY salary
+-- of employees in the Sales department.
+-- =========================================================
+SELECT emp_id, emp_name, salary
+FROM employees
+WHERE salary > ANY (
+    SELECT salary
+    FROM employees
+    WHERE dept_id = (
+        SELECT dept_id
+        FROM departments
+        WHERE dept_name = 'Sales'
+    )
+);
+
+-- =========================================================
+-- OPTIONAL EXTRA PRACTICE 2
+-- Find employees who joined on the earliest join date.
+-- =========================================================
+SELECT emp_id, emp_name, join_date
+FROM employees
+WHERE join_date = (
+    SELECT MIN(join_date)
+    FROM employees
+);
