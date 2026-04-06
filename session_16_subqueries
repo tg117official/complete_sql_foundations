@@ -82,12 +82,18 @@ INSERT INTO employees (emp_id, emp_name, gender, age, job_title, salary, dept_id
 -- employees
 -- =========================================================
 
+   
 USE subquery_demo_db;
 
 -- =========================================================
 -- EXERCISE 1
--- Find employees whose salary is greater than the average salary
--- of all employees.
+-- Type: Scalar Subquery
+-- Definition:
+-- A scalar subquery returns only one value.
+--
+-- Problem Statement:
+-- Find employees whose salary is greater than the average
+-- salary of all employees.
 -- =========================================================
 SELECT emp_id, emp_name, salary
 FROM employees
@@ -98,7 +104,12 @@ WHERE salary > (
 
 -- =========================================================
 -- EXERCISE 2
--- Find employees who work in the IT department.
+-- Type: Scalar Subquery
+-- Definition:
+-- A scalar subquery returns one value and is often used with =.
+--
+-- Problem Statement:
+-- Find all employees who work in the IT department.
 -- =========================================================
 SELECT emp_id, emp_name, dept_id
 FROM employees
@@ -110,7 +121,15 @@ WHERE dept_id = (
 
 -- =========================================================
 -- EXERCISE 3
--- Find employees who work in departments located in Mumbai.
+-- Type: Multiple Row Subquery using IN
+-- Definition:
+-- A multiple row subquery returns multiple values.
+-- IN is used when outer query needs to match any of those values.
+--
+-- Problem Statement:
+-- Find employees who work in departments located in Delhi
+-- or Mumbai or any other matching location returned by subquery.
+-- Here we are filtering for Mumbai.
 -- =========================================================
 SELECT emp_id, emp_name, dept_id
 FROM employees
@@ -122,8 +141,13 @@ WHERE dept_id IN (
 
 -- =========================================================
 -- EXERCISE 4
--- Find employees whose salary is greater than the salary of
--- employee 'Neha Verma'.
+-- Type: Scalar Subquery
+-- Definition:
+-- A scalar subquery returns one value.
+--
+-- Problem Statement:
+-- Find employees whose salary is greater than the salary
+-- of 'Neha Verma'.
 -- =========================================================
 SELECT emp_id, emp_name, salary
 FROM employees
@@ -135,8 +159,15 @@ WHERE salary > (
 
 -- =========================================================
 -- EXERCISE 5
+-- Type: Multiple Row Subquery using IN
+-- Definition:
+-- A multiple row subquery returns many values.
+-- IN checks whether a value exists in that returned list.
+--
+-- Problem Statement:
 -- Find employees who are managers.
--- manager_id of some employees points to emp_id of managers.
+-- Hint: managers are those whose emp_id appears as manager_id
+-- for some other employee.
 -- =========================================================
 SELECT emp_id, emp_name, job_title
 FROM employees
@@ -148,6 +179,12 @@ WHERE emp_id IN (
 
 -- =========================================================
 -- EXERCISE 6
+-- Type: Multiple Row Subquery using NOT IN
+-- Definition:
+-- NOT IN is used to find rows whose value does not exist
+-- in the subquery result.
+--
+-- Problem Statement:
 -- Find employees who are not managers.
 -- =========================================================
 SELECT emp_id, emp_name, job_title
@@ -160,7 +197,12 @@ WHERE emp_id NOT IN (
 
 -- =========================================================
 -- EXERCISE 7
--- Find employees who earn the highest salary in the company.
+-- Type: Scalar Subquery
+-- Definition:
+-- A scalar subquery returns one value.
+--
+-- Problem Statement:
+-- Find employee(s) who have the highest salary in the company.
 -- =========================================================
 SELECT emp_id, emp_name, salary
 FROM employees
@@ -171,9 +213,14 @@ WHERE salary = (
 
 -- =========================================================
 -- EXERCISE 8
--- Find employees whose salary is higher than the average salary
+-- Type: Correlated Subquery
+-- Definition:
+-- A correlated subquery depends on the current row of outer query.
+-- It executes again for each row of outer query.
+--
+-- Problem Statement:
+-- Find employees whose salary is greater than the average salary
 -- of their own department.
--- Correlated subquery example.
 -- =========================================================
 SELECT e1.emp_id, e1.emp_name, e1.salary, e1.dept_id
 FROM employees e1
@@ -185,8 +232,14 @@ WHERE e1.salary > (
 
 -- =========================================================
 -- EXERCISE 9
+-- Type: Subquery in FROM Clause
+-- Definition:
+-- A subquery in FROM clause works like a temporary table.
+--
+-- Problem Statement:
 -- Find departments that have at least 4 employees.
--- Subquery in FROM clause.
+-- First calculate employee count department-wise,
+-- then filter in outer query.
 -- =========================================================
 SELECT dept_id, total_employees
 FROM (
@@ -198,8 +251,14 @@ WHERE total_employees >= 4;
 
 -- =========================================================
 -- EXERCISE 10
+-- Type: Multiple Row Subquery using ALL
+-- Definition:
+-- ALL compares a value with all values returned by subquery.
+-- Condition becomes true only if comparison succeeds for every row.
+--
+-- Problem Statement:
 -- Find employees whose salary is greater than ALL salaries
--- of employees in the HR department.
+-- of employees in HR department.
 -- =========================================================
 SELECT emp_id, emp_name, salary
 FROM employees
@@ -211,32 +270,4 @@ WHERE salary > ALL (
         FROM departments
         WHERE dept_name = 'HR'
     )
-);
-
--- =========================================================
--- OPTIONAL EXTRA PRACTICE 1
--- Find employees whose salary is greater than ANY salary
--- of employees in the Sales department.
--- =========================================================
-SELECT emp_id, emp_name, salary
-FROM employees
-WHERE salary > ANY (
-    SELECT salary
-    FROM employees
-    WHERE dept_id = (
-        SELECT dept_id
-        FROM departments
-        WHERE dept_name = 'Sales'
-    )
-);
-
--- =========================================================
--- OPTIONAL EXTRA PRACTICE 2
--- Find employees who joined on the earliest join date.
--- =========================================================
-SELECT emp_id, emp_name, join_date
-FROM employees
-WHERE join_date = (
-    SELECT MIN(join_date)
-    FROM employees
 );
