@@ -271,3 +271,396 @@ WHERE salary > ALL (
         WHERE dept_name = 'HR'
     )
 );
+
+
+
+USE subquery_demo_db;
+
+-- =========================================================
+-- EXERCISE 1
+-- Type: Scalar Subquery
+-- Clause: WHERE
+-- Execution:
+-- Inner query runs first and returns one value: minimum salary.
+-- Outer query returns employees matching that value.
+--
+-- Problem:
+-- Find employee(s) who have the lowest salary in the company.
+-- =========================================================
+SELECT emp_id, emp_name, salary
+FROM employees
+WHERE salary = (
+    SELECT MIN(salary)
+    FROM employees
+);
+
+-- =========================================================
+-- EXERCISE 2
+-- Type: Scalar Subquery
+-- Clause: WHERE
+-- Execution:
+-- Inner query returns earliest join date.
+-- Outer query finds employees who joined on that date.
+--
+-- Problem:
+-- Find employee(s) who joined the company first.
+-- =========================================================
+SELECT emp_id, emp_name, join_date
+FROM employees
+WHERE join_date = (
+    SELECT MIN(join_date)
+    FROM employees
+);
+
+-- =========================================================
+-- EXERCISE 3
+-- Type: Scalar Subquery
+-- Clause: WHERE
+-- Execution:
+-- Inner query returns the maximum age.
+-- Outer query finds employees whose age equals that value.
+--
+-- Problem:
+-- Find the oldest employee(s) in the company.
+-- =========================================================
+SELECT emp_id, emp_name, age
+FROM employees
+WHERE age = (
+    SELECT MAX(age)
+    FROM employees
+);
+
+-- =========================================================
+-- EXERCISE 4
+-- Type: Multiple Row Single Column Subquery
+-- Clause: WHERE
+-- Execution:
+-- Inner query returns dept_id values for departments in Pune or Hyderabad.
+-- Outer query returns employees whose dept_id matches any returned value.
+--
+-- Problem:
+-- Find employees working in departments located in Pune or Hyderabad.
+-- =========================================================
+SELECT emp_id, emp_name, dept_id, city
+FROM employees
+WHERE dept_id IN (
+    SELECT dept_id
+    FROM departments
+    WHERE location IN ('Pune', 'Hyderabad')
+);
+
+-- =========================================================
+-- EXERCISE 5
+-- Type: Scalar Subquery
+-- Clause: WHERE
+-- Execution:
+-- Inner query returns salary of Amit Sharma.
+-- Outer query finds employees earning less than Amit Sharma.
+--
+-- Problem:
+-- Find employees whose salary is less than Amit Sharma's salary.
+-- =========================================================
+SELECT emp_id, emp_name, salary
+FROM employees
+WHERE salary < (
+    SELECT salary
+    FROM employees
+    WHERE emp_name = 'Amit Sharma'
+);
+
+-- =========================================================
+-- EXERCISE 6
+-- Type: Multiple Row Single Column Subquery
+-- Clause: WHERE
+-- Execution:
+-- Inner query returns all dept_id values that have at least one female employee.
+-- Outer query returns all employees in those departments.
+--
+-- Problem:
+-- Find employees who work in departments where at least one female employee exists.
+-- =========================================================
+SELECT emp_id, emp_name, dept_id
+FROM employees
+WHERE dept_id IN (
+    SELECT DISTINCT dept_id
+    FROM employees
+    WHERE gender = 'Female'
+);
+
+-- =========================================================
+-- EXERCISE 7
+-- Type: Scalar Subquery
+-- Clause: WHERE
+-- Execution:
+-- Inner query returns average age of all employees.
+-- Outer query filters employees older than that value.
+--
+-- Problem:
+-- Find employees whose age is greater than the average age of all employees.
+-- =========================================================
+SELECT emp_id, emp_name, age
+FROM employees
+WHERE age > (
+    SELECT AVG(age)
+    FROM employees
+);
+
+-- =========================================================
+-- EXERCISE 8
+-- Type: Correlated Subquery
+-- Clause: WHERE
+-- Execution:
+-- For each outer employee row, inner query counts employees in the same department.
+-- Outer row is kept only if department size is more than 3.
+--
+-- Problem:
+-- Find employees who work in departments having more than 3 employees.
+-- =========================================================
+SELECT e1.emp_id, e1.emp_name, e1.dept_id
+FROM employees e1
+WHERE (
+    SELECT COUNT(*)
+    FROM employees e2
+    WHERE e2.dept_id = e1.dept_id
+) > 3;
+
+-- =========================================================
+-- EXERCISE 9
+-- Type: Correlated Subquery
+-- Clause: WHERE
+-- Execution:
+-- For each employee, inner query finds max salary in that employee's department.
+-- Outer query keeps rows where employee salary equals that max value.
+--
+-- Problem:
+-- Find the highest paid employee(s) in each department.
+-- =========================================================
+SELECT e1.emp_id, e1.emp_name, e1.dept_id, e1.salary
+FROM employees e1
+WHERE e1.salary = (
+    SELECT MAX(e2.salary)
+    FROM employees e2
+    WHERE e2.dept_id = e1.dept_id
+);
+
+-- =========================================================
+-- EXERCISE 10
+-- Type: Correlated Subquery
+-- Clause: WHERE
+-- Execution:
+-- For each employee, inner query finds minimum salary in that employee's department.
+-- Outer query keeps rows where employee salary equals that min value.
+--
+-- Problem:
+-- Find the lowest paid employee(s) in each department.
+-- =========================================================
+SELECT e1.emp_id, e1.emp_name, e1.dept_id, e1.salary
+FROM employees e1
+WHERE e1.salary = (
+    SELECT MIN(e2.salary)
+    FROM employees e2
+    WHERE e2.dept_id = e1.dept_id
+);
+
+-- =========================================================
+-- EXERCISE 11
+-- Type: Scalar Subquery
+-- Clause: WHERE
+-- Execution:
+-- Inner query returns average salary of Finance department.
+-- Outer query returns employees whose salary is greater than that value.
+--
+-- Problem:
+-- Find employees whose salary is greater than the average salary of Finance department.
+-- =========================================================
+SELECT emp_id, emp_name, salary
+FROM employees
+WHERE salary > (
+    SELECT AVG(salary)
+    FROM employees
+    WHERE dept_id = (
+        SELECT dept_id
+        FROM departments
+        WHERE dept_name = 'Finance'
+    )
+);
+
+-- =========================================================
+-- EXERCISE 12
+-- Type: Single Row Multiple Column Subquery
+-- Clause: WHERE
+-- Execution:
+-- Inner query returns one row with two columns: dept_id and manager_id of Amit Sharma.
+-- Outer query matches employees having the same pair.
+--
+-- Problem:
+-- Find employees who have the same department and same manager as Amit Sharma.
+-- =========================================================
+SELECT emp_id, emp_name, dept_id, manager_id
+FROM employees
+WHERE (dept_id, manager_id) = (
+    SELECT dept_id, manager_id
+    FROM employees
+    WHERE emp_name = 'Amit Sharma'
+);
+
+-- =========================================================
+-- EXERCISE 13
+-- Type: Multi Row Multiple Column Subquery
+-- Clause: WHERE
+-- Execution:
+-- Inner query returns multiple (dept_id, manager_id) pairs from female employees.
+-- Outer query returns employees whose pair matches any returned pair.
+--
+-- Problem:
+-- Find employees whose department-manager combination is same as any female employee.
+-- =========================================================
+SELECT emp_id, emp_name, dept_id, manager_id
+FROM employees
+WHERE (dept_id, manager_id) IN (
+    SELECT dept_id, manager_id
+    FROM employees
+    WHERE gender = 'Female'
+      AND manager_id IS NOT NULL
+);
+
+-- =========================================================
+-- EXERCISE 14
+-- Type: Scalar Correlated Subquery
+-- Clause: SELECT
+-- Execution:
+-- For each employee row, inner query counts how many employees are in the same department.
+--
+-- Problem:
+-- Show each employee along with total number of employees in their department.
+-- =========================================================
+SELECT
+    e1.emp_id,
+    e1.emp_name,
+    e1.dept_id,
+    (
+        SELECT COUNT(*)
+        FROM employees e2
+        WHERE e2.dept_id = e1.dept_id
+    ) AS dept_employee_count
+FROM employees e1;
+
+-- =========================================================
+-- EXERCISE 15
+-- Type: Scalar Correlated Subquery
+-- Clause: SELECT
+-- Execution:
+-- For each employee row, inner query finds highest salary in that employee's department.
+--
+-- Problem:
+-- Show each employee with the highest salary of their department.
+-- =========================================================
+SELECT
+    e1.emp_id,
+    e1.emp_name,
+    e1.salary,
+    e1.dept_id,
+    (
+        SELECT MAX(e2.salary)
+        FROM employees e2
+        WHERE e2.dept_id = e1.dept_id
+    ) AS dept_highest_salary
+FROM employees e1;
+
+-- =========================================================
+-- EXERCISE 16
+-- Type: Subquery in FROM
+-- Clause: FROM
+-- Execution:
+-- Inner query creates department-wise minimum salary summary.
+-- Outer query filters departments whose minimum salary is below 45000.
+--
+-- Problem:
+-- Find departments where the minimum salary is less than 45000.
+-- =========================================================
+SELECT dept_id, min_salary
+FROM (
+    SELECT dept_id, MIN(salary) AS min_salary
+    FROM employees
+    GROUP BY dept_id
+) AS dept_min_salary
+WHERE min_salary < 45000;
+
+-- =========================================================
+-- EXERCISE 17
+-- Type: Subquery in FROM
+-- Clause: FROM
+-- Execution:
+-- Inner query creates city-wise employee count summary.
+-- Outer query returns only cities having more than 3 employees.
+--
+-- Problem:
+-- Find cities having more than 3 employees.
+-- =========================================================
+SELECT city, total_employees
+FROM (
+    SELECT city, COUNT(*) AS total_employees
+    FROM employees
+    GROUP BY city
+) AS city_summary
+WHERE total_employees > 3;
+
+-- =========================================================
+-- EXERCISE 18
+-- Type: Scalar Subquery
+-- Clause: HAVING
+-- Execution:
+-- Main query groups employees by city.
+-- Inner query returns overall average salary.
+-- HAVING keeps only those cities whose average salary is above overall average salary.
+--
+-- Problem:
+-- Find cities whose average salary is greater than the overall average salary.
+-- =========================================================
+SELECT city, AVG(salary) AS avg_salary
+FROM employees
+GROUP BY city
+HAVING AVG(salary) > (
+    SELECT AVG(salary)
+    FROM employees
+);
+
+-- =========================================================
+-- EXERCISE 19
+-- Type: Correlated Subquery with EXISTS
+-- Clause: WHERE
+-- Execution:
+-- For each employee in outer query, inner query checks whether
+-- another employee exists in the same department with higher salary.
+-- If yes, current row is returned.
+--
+-- Problem:
+-- Find employees who are not the highest paid in their department.
+-- =========================================================
+SELECT e1.emp_id, e1.emp_name, e1.dept_id, e1.salary
+FROM employees e1
+WHERE EXISTS (
+    SELECT 1
+    FROM employees e2
+    WHERE e2.dept_id = e1.dept_id
+      AND e2.salary > e1.salary
+);
+
+-- =========================================================
+-- EXERCISE 20
+-- Type: Correlated Subquery with NOT EXISTS
+-- Clause: WHERE
+-- Execution:
+-- For each department row, inner query checks whether any employee exists in that department.
+-- If no employee exists, that department is returned.
+--
+-- Problem:
+-- Find departments that currently have no employees.
+-- =========================================================
+SELECT d.dept_id, d.dept_name, d.location
+FROM departments d
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM employees e
+    WHERE e.dept_id = d.dept_id
+);
