@@ -8,6 +8,23 @@
 -- 5. Exercises with solutions
 -- =========================================================
 
+/* 
+A CTE (Common Table Expression) is a temporary named result set created using the WITH clause, 
+and it can be used inside the same query like a virtual table.
+
+It helps make SQL easier to read, understand, debug, and write step by step, 
+especially when the query is long or complex.
+
+CTEs are very useful when we need intermediate results such as filtered data, aggregated summaries, 
+multiple logical steps, or recursive hierarchy logic.
+
+A CTE is not a permanent table and it exists only during the execution of that query; after the query finishes, 
+the CTE disappears.
+
+In MySQL, a CTE may be materialized once or merged into the main query by the optimizer, so logically it looks like 
+a temporary table, but internally execution can vary.
+*/
+
 -- =========================================================
 -- CREATE DATABASE
 -- =========================================================
