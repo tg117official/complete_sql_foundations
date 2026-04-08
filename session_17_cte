@@ -87,7 +87,7 @@ INSERT INTO employees (emp_id, emp_name, gender, age, job_title, salary, dept_id
 (125, 'Prakash Naidu', 'Male', 29, 'Sales Coordinator', 44000.00, 4, 113, '2022-11-19', 'Bangalore');
 
 -- =========================================================
--- SHORT NOTES ON TYPES OF CTE
+-- TYPES OF CTE
 -- =========================================================
 
 -- 1. BASIC / SIMPLE CTE
