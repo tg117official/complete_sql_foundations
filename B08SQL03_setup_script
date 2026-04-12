@@ -1,0 +1,411 @@
+-- =========================================================
+-- SQL INTENSE PRACTICE DATASET
+-- MySQL Script: Database + Tables + Insert Statements
+-- =========================================================
+
+DROP DATABASE IF EXISTS sql_intense_practice;
+CREATE DATABASE sql_intense_practice;
+USE sql_intense_practice;
+
+-- =========================================================
+-- 1. DEPARTMENTS
+-- =========================================================
+CREATE TABLE departments (
+    department_id INT PRIMARY KEY,
+    department_name VARCHAR(100) NOT NULL,
+    location VARCHAR(100) NOT NULL
+);
+
+INSERT INTO departments (department_id, department_name, location) VALUES
+(1, 'Sales', 'Mumbai'),
+(2, 'HR', 'Pune'),
+(3, 'Finance', 'Bengaluru'),
+(4, 'IT', 'Hyderabad'),
+(5, 'Operations', 'Chennai'),
+(6, 'Marketing', 'Delhi');
+
+-- =========================================================
+-- 2. EMPLOYEES
+-- =========================================================
+CREATE TABLE employees (
+    employee_id INT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    gender VARCHAR(10),
+    department_id INT,
+    manager_id INT NULL,
+    hire_date DATE NOT NULL,
+    salary DECIMAL(10,2) NOT NULL,
+    bonus DECIMAL(10,2) DEFAULT 0,
+    city VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    job_title VARCHAR(100),
+    FOREIGN KEY (department_id) REFERENCES departments(department_id)
+);
+
+INSERT INTO employees (employee_id, first_name, last_name, gender, department_id, manager_id, hire_date, salary, bonus, city, email, job_title) VALUES
+(101, 'Amit', 'Sharma', 'Male', 1, NULL, '2018-01-15', 95000, 12000, 'Mumbai', 'amit.sharma@company.com', 'Sales Director'),
+(102, 'Neha', 'Verma', 'Female', 2, NULL, '2019-03-10', 85000, 8000, 'Pune', 'neha.verma@company.com', 'HR Manager'),
+(103, 'Raj', 'Patil', 'Male', 3, NULL, '2017-07-21', 110000, 15000, 'Bengaluru', 'raj.patil@company.com', 'Finance Head'),
+(104, 'Sneha', 'Kulkarni', 'Female', 4, NULL, '2016-11-01', 125000, 20000, 'Hyderabad', 'sneha.kulkarni@company.com', 'IT Head'),
+(105, 'Vikram', 'Singh', 'Male', 5, NULL, '2018-05-18', 90000, 9000, 'Chennai', 'vikram.singh@company.com', 'Operations Head'),
+(106, 'Priya', 'Nair', 'Female', 6, NULL, '2020-02-11', 88000, 8500, 'Delhi', 'priya.nair@company.com', 'Marketing Head'),
+(107, 'Karan', 'Mehta', 'Male', 1, 101, '2021-04-12', 60000, 5000, 'Mumbai', 'karan.mehta@company.com', 'Sales Executive'),
+(108, 'Pooja', 'Jain', 'Female', 1, 101, '2022-06-23', 58000, 4500, 'Nashik', 'pooja.jain@company.com', 'Sales Executive'),
+(109, 'Rohit', 'Gupta', 'Male', 1, 101, '2023-01-08', 52000, 3000, 'Pune', 'rohit.gupta@company.com', 'Sales Associate'),
+(110, 'Anjali', 'Deshmukh', 'Female', 2, 102, '2021-09-14', 50000, 4000, 'Pune', 'anjali.deshmukh@company.com', 'HR Executive'),
+(111, 'Suresh', 'Iyer', 'Male', 2, 102, '2020-12-01', 54000, 3500, 'Chennai', 'suresh.iyer@company.com', 'Recruiter'),
+(112, 'Meera', 'Joshi', 'Female', 3, 103, '2022-02-17', 65000, 7000, 'Bengaluru', 'meera.joshi@company.com', 'Financial Analyst'),
+(113, 'Arjun', 'Reddy', 'Male', 3, 103, '2023-03-25', 62000, 5000, 'Hyderabad', 'arjun.reddy@company.com', 'Accountant'),
+(114, 'Kavita', 'More', 'Female', 4, 104, '2021-07-30', 78000, 6000, 'Hyderabad', 'kavita.more@company.com', 'Data Engineer'),
+(115, 'Deepak', 'Yadav', 'Male', 4, 104, '2022-10-09', 73000, 5500, 'Delhi', 'deepak.yadav@company.com', 'Software Engineer'),
+(116, 'Farah', 'Khan', 'Female', 4, 104, '2023-05-19', 71000, 4500, 'Mumbai', 'farah.khan@company.com', 'QA Engineer'),
+(117, 'Nitin', 'Bose', 'Male', 5, 105, '2020-08-08', 64000, 4800, 'Chennai', 'nitin.bose@company.com', 'Operations Analyst'),
+(118, 'Shweta', 'Rao', 'Female', 5, 105, '2021-11-11', 61000, 4200, 'Bengaluru', 'shweta.rao@company.com', 'Supply Coordinator'),
+(119, 'Aakash', 'Mishra', 'Male', 6, 106, '2022-04-28', 59000, 4000, 'Delhi', 'aakash.mishra@company.com', 'Marketing Executive'),
+(120, 'Ritika', 'Sethi', 'Female', 6, 106, '2023-08-16', 56000, 3500, 'Mumbai', 'ritika.sethi@company.com', 'Content Specialist');
+
+-- =========================================================
+-- 3. CUSTOMERS
+-- =========================================================
+CREATE TABLE customers (
+    customer_id INT PRIMARY KEY,
+    customer_name VARCHAR(100) NOT NULL,
+    gender VARCHAR(10),
+    city VARCHAR(100),
+    state_name VARCHAR(100),
+    signup_date DATE NOT NULL,
+    customer_type VARCHAR(20),
+    email VARCHAR(100) UNIQUE
+);
+
+INSERT INTO customers (customer_id, customer_name, gender, city, state_name, signup_date, customer_type, email) VALUES
+(201, 'Rahul Patil', 'Male', 'Mumbai', 'Maharashtra', '2022-01-10', 'Regular', 'rahul.patil@gmail.com'),
+(202, 'Sana Khan', 'Female', 'Pune', 'Maharashtra', '2022-02-15', 'Premium', 'sana.khan@gmail.com'),
+(203, 'Aditya Rao', 'Male', 'Hyderabad', 'Telangana', '2022-03-20', 'Regular', 'aditya.rao@gmail.com'),
+(204, 'Nisha Jain', 'Female', 'Jaipur', 'Rajasthan', '2022-04-12', 'Premium', 'nisha.jain@gmail.com'),
+(205, 'Manoj Verma', 'Male', 'Delhi', 'Delhi', '2022-05-05', 'Regular', 'manoj.verma@gmail.com'),
+(206, 'Pallavi More', 'Female', 'Nagpur', 'Maharashtra', '2022-06-18', 'Regular', 'pallavi.more@gmail.com'),
+(207, 'Yash Gupta', 'Male', 'Lucknow', 'Uttar Pradesh', '2022-07-07', 'Premium', 'yash.gupta@gmail.com'),
+(208, 'Komal Desai', 'Female', 'Ahmedabad', 'Gujarat', '2022-08-01', 'Regular', 'komal.desai@gmail.com'),
+(209, 'Ramesh Iyer', 'Male', 'Chennai', 'Tamil Nadu', '2022-09-09', 'Premium', 'ramesh.iyer@gmail.com'),
+(210, 'Bhavna Sharma', 'Female', 'Bhopal', 'Madhya Pradesh', '2022-10-03', 'Regular', 'bhavna.sharma@gmail.com'),
+(211, 'Tarun Mehta', 'Male', 'Surat', 'Gujarat', '2022-11-11', 'Premium', 'tarun.mehta@gmail.com'),
+(212, 'Divya Nair', 'Female', 'Kochi', 'Kerala', '2022-12-14', 'Regular', 'divya.nair@gmail.com'),
+(213, 'Harsh Singh', 'Male', 'Noida', 'Uttar Pradesh', '2023-01-17', 'Regular', 'harsh.singh@gmail.com'),
+(214, 'Isha Kulkarni', 'Female', 'Nashik', 'Maharashtra', '2023-02-22', 'Premium', 'isha.kulkarni@gmail.com'),
+(215, 'Varun Bose', 'Male', 'Kolkata', 'West Bengal', '2023-03-10', 'Regular', 'varun.bose@gmail.com'),
+(216, 'Mitali Joshi', 'Female', 'Indore', 'Madhya Pradesh', '2023-04-18', 'Premium', 'mitali.joshi@gmail.com'),
+(217, 'Pratik Reddy', 'Male', 'Hyderabad', 'Telangana', '2023-05-09', 'Regular', 'pratik.reddy@gmail.com'),
+(218, 'Zara Ali', 'Female', 'Delhi', 'Delhi', '2023-06-13', 'Premium', 'zara.ali@gmail.com');
+
+-- =========================================================
+-- 4. CATEGORIES
+-- =========================================================
+CREATE TABLE categories (
+    category_id INT PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL
+);
+
+INSERT INTO categories (category_id, category_name) VALUES
+(1, 'Electronics'),
+(2, 'Home Appliances'),
+(3, 'Furniture'),
+(4, 'Clothing'),
+(5, 'Books'),
+(6, 'Sports');
+
+-- =========================================================
+-- 5. SUPPLIERS
+-- =========================================================
+CREATE TABLE suppliers (
+    supplier_id INT PRIMARY KEY,
+    supplier_name VARCHAR(100) NOT NULL,
+    city VARCHAR(100),
+    country VARCHAR(100),
+    rating DECIMAL(3,1)
+);
+
+INSERT INTO suppliers (supplier_id, supplier_name, city, country, rating) VALUES
+(301, 'TechSource India', 'Bengaluru', 'India', 4.5),
+(302, 'HomeCare Distributors', 'Mumbai', 'India', 4.1),
+(303, 'FurniWorld', 'Jaipur', 'India', 4.3),
+(304, 'StyleHub Apparel', 'Delhi', 'India', 4.0),
+(305, 'BookNest Supplies', 'Kolkata', 'India', 4.7),
+(306, 'Sportex Global', 'Chennai', 'India', 4.2),
+(307, 'GadgetPro Asia', 'Singapore', 'Singapore', 4.8),
+(308, 'Urban Living Imports', 'Dubai', 'UAE', 3.9);
+
+-- =========================================================
+-- 6. PRODUCTS
+-- =========================================================
+CREATE TABLE products (
+    product_id INT PRIMARY KEY,
+    product_name VARCHAR(150) NOT NULL,
+    category_id INT,
+    supplier_id INT,
+    unit_price DECIMAL(10,2) NOT NULL,
+    stock_qty INT NOT NULL,
+    reorder_level INT NOT NULL,
+    launch_date DATE,
+    status VARCHAR(20),
+    FOREIGN KEY (category_id) REFERENCES categories(category_id),
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
+);
+
+INSERT INTO products (product_id, product_name, category_id, supplier_id, unit_price, stock_qty, reorder_level, launch_date, status) VALUES
+(401, 'Laptop Pro 14', 1, 301, 75000, 30, 10, '2023-01-10', 'Active'),
+(402, 'Wireless Mouse', 1, 301, 1200, 150, 40, '2023-02-05', 'Active'),
+(403, 'Bluetooth Speaker', 1, 307, 3200, 80, 20, '2023-03-18', 'Active'),
+(404, 'Smartphone X', 1, 307, 42000, 45, 15, '2023-04-01', 'Active'),
+(405, 'Refrigerator 260L', 2, 302, 28000, 20, 5, '2022-11-21', 'Active'),
+(406, 'Microwave Oven', 2, 302, 8500, 35, 10, '2022-12-12', 'Active'),
+(407, 'Air Purifier', 2, 308, 11000, 25, 8, '2023-01-25', 'Active'),
+(408, 'Office Chair', 3, 303, 6500, 60, 20, '2022-10-10', 'Active'),
+(409, 'Wooden Desk', 3, 303, 14500, 18, 6, '2023-02-22', 'Active'),
+(410, 'Bookshelf', 3, 308, 7200, 22, 7, '2023-03-11', 'Discontinued'),
+(411, 'Men T-Shirt', 4, 304, 799, 200, 50, '2023-01-05', 'Active'),
+(412, 'Women Kurti', 4, 304, 1299, 140, 30, '2023-01-15', 'Active'),
+(413, 'Running Shoes', 4, 306, 2999, 90, 25, '2023-02-08', 'Active'),
+(414, 'SQL Mastery Book', 5, 305, 599, 120, 25, '2022-09-01', 'Active'),
+(415, 'Python for Data Engineering', 5, 305, 899, 75, 20, '2023-01-20', 'Active'),
+(416, 'Notebook Pack', 5, 305, 249, 300, 60, '2022-08-12', 'Active'),
+(417, 'Cricket Bat', 6, 306, 3500, 40, 12, '2023-03-01', 'Active'),
+(418, 'Football', 6, 306, 999, 110, 30, '2023-03-10', 'Active'),
+(419, 'Yoga Mat', 6, 306, 1500, 95, 20, '2023-04-14', 'Active'),
+(420, 'Gaming Keyboard', 1, 301, 2800, 70, 18, '2023-05-01', 'Active');
+
+-- =========================================================
+-- 7. ORDERS
+-- =========================================================
+CREATE TABLE orders (
+    order_id INT PRIMARY KEY,
+    customer_id INT,
+    employee_id INT,
+    order_date DATE NOT NULL,
+    shipped_date DATE NULL,
+    order_status VARCHAR(20),
+    shipping_city VARCHAR(100),
+    payment_mode VARCHAR(30),
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
+);
+
+INSERT INTO orders (order_id, customer_id, employee_id, order_date, shipped_date, order_status, shipping_city, payment_mode) VALUES
+(5001, 201, 107, '2023-06-01', '2023-06-03', 'Delivered', 'Mumbai', 'UPI'),
+(5002, 202, 108, '2023-06-02', '2023-06-04', 'Delivered', 'Pune', 'Card'),
+(5003, 203, 109, '2023-06-03', '2023-06-06', 'Delivered', 'Hyderabad', 'NetBanking'),
+(5004, 204, 107, '2023-06-05', '2023-06-07', 'Delivered', 'Jaipur', 'Card'),
+(5005, 205, 108, '2023-06-06', NULL, 'Cancelled', 'Delhi', 'UPI'),
+(5006, 206, 109, '2023-06-07', '2023-06-10', 'Delivered', 'Nagpur', 'Cash on Delivery'),
+(5007, 207, 107, '2023-06-08', '2023-06-11', 'Delivered', 'Lucknow', 'UPI'),
+(5008, 208, 108, '2023-06-10', '2023-06-12', 'Delivered', 'Ahmedabad', 'Card'),
+(5009, 209, 109, '2023-06-12', '2023-06-15', 'Delivered', 'Chennai', 'NetBanking'),
+(5010, 210, 107, '2023-06-13', NULL, 'Pending', 'Bhopal', 'UPI'),
+(5011, 211, 108, '2023-06-15', '2023-06-17', 'Delivered', 'Surat', 'Card'),
+(5012, 212, 109, '2023-06-16', '2023-06-20', 'Delivered', 'Kochi', 'UPI'),
+(5013, 213, 107, '2023-06-18', NULL, 'Cancelled', 'Noida', 'Card'),
+(5014, 214, 108, '2023-06-20', '2023-06-22', 'Delivered', 'Nashik', 'NetBanking'),
+(5015, 215, 109, '2023-06-21', '2023-06-24', 'Delivered', 'Kolkata', 'UPI'),
+(5016, 216, 107, '2023-06-22', '2023-06-25', 'Delivered', 'Indore', 'Card'),
+(5017, 217, 108, '2023-06-24', NULL, 'Pending', 'Hyderabad', 'UPI'),
+(5018, 218, 109, '2023-06-25', '2023-06-27', 'Delivered', 'Delhi', 'Card'),
+(5019, 201, 107, '2023-07-01', '2023-07-03', 'Delivered', 'Mumbai', 'UPI'),
+(5020, 202, 108, '2023-07-03', '2023-07-05', 'Delivered', 'Pune', 'Card'),
+(5021, 203, 109, '2023-07-04', NULL, 'Pending', 'Hyderabad', 'NetBanking'),
+(5022, 204, 107, '2023-07-05', '2023-07-08', 'Delivered', 'Jaipur', 'UPI'),
+(5023, 205, 108, '2023-07-06', '2023-07-09', 'Delivered', 'Delhi', 'Cash on Delivery'),
+(5024, 206, 109, '2023-07-07', NULL, 'Cancelled', 'Nagpur', 'UPI'),
+(5025, 207, 107, '2023-07-08', '2023-07-11', 'Delivered', 'Lucknow', 'Card');
+
+-- =========================================================
+-- 8. ORDER_ITEMS
+-- =========================================================
+CREATE TABLE order_items (
+    order_item_id INT PRIMARY KEY,
+    order_id INT,
+    product_id INT,
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    discount_percent DECIMAL(5,2) DEFAULT 0,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+INSERT INTO order_items (order_item_id, order_id, product_id, quantity, unit_price, discount_percent) VALUES
+(6001, 5001, 401, 1, 75000, 5),
+(6002, 5001, 402, 2, 1200, 0),
+(6003, 5002, 414, 2, 599, 10),
+(6004, 5002, 415, 1, 899, 0),
+(6005, 5003, 404, 1, 42000, 7),
+(6006, 5003, 420, 1, 2800, 5),
+(6007, 5004, 408, 2, 6500, 8),
+(6008, 5004, 409, 1, 14500, 10),
+(6009, 5005, 405, 1, 28000, 0),
+(6010, 5006, 411, 3, 799, 5),
+(6011, 5006, 412, 2, 1299, 0),
+(6012, 5007, 417, 1, 3500, 0),
+(6013, 5007, 418, 2, 999, 5),
+(6014, 5008, 403, 1, 3200, 0),
+(6015, 5008, 402, 1, 1200, 0),
+(6016, 5009, 405, 1, 28000, 12),
+(6017, 5009, 407, 1, 11000, 5),
+(6018, 5010, 416, 5, 249, 0),
+(6019, 5011, 413, 2, 2999, 10),
+(6020, 5011, 419, 2, 1500, 5),
+(6021, 5012, 414, 3, 599, 0),
+(6022, 5012, 416, 4, 249, 0),
+(6023, 5013, 410, 1, 7200, 15),
+(6024, 5014, 401, 1, 75000, 8),
+(6025, 5014, 420, 1, 2800, 0),
+(6026, 5015, 418, 3, 999, 0),
+(6027, 5015, 419, 1, 1500, 0),
+(6028, 5016, 406, 1, 8500, 5),
+(6029, 5016, 407, 1, 11000, 10),
+(6030, 5017, 404, 1, 42000, 0),
+(6031, 5018, 412, 2, 1299, 5),
+(6032, 5018, 411, 2, 799, 0),
+(6033, 5019, 415, 2, 899, 0),
+(6034, 5019, 414, 1, 599, 0),
+(6035, 5020, 403, 2, 3200, 10),
+(6036, 5020, 420, 1, 2800, 0),
+(6037, 5021, 401, 1, 75000, 0),
+(6038, 5022, 408, 1, 6500, 0),
+(6039, 5022, 413, 1, 2999, 5),
+(6040, 5023, 405, 1, 28000, 8),
+(6041, 5023, 406, 1, 8500, 0),
+(6042, 5024, 410, 2, 7200, 20),
+(6043, 5025, 417, 2, 3500, 10),
+(6044, 5025, 418, 1, 999, 0);
+
+-- =========================================================
+-- 9. PAYMENTS
+-- =========================================================
+CREATE TABLE payments (
+    payment_id INT PRIMARY KEY,
+    order_id INT,
+    payment_date DATE,
+    payment_amount DECIMAL(12,2),
+    payment_status VARCHAR(20),
+    transaction_ref VARCHAR(100),
+    FOREIGN KEY (order_id) REFERENCES orders(order_id)
+);
+
+INSERT INTO payments (payment_id, order_id, payment_date, payment_amount, payment_status, transaction_ref) VALUES
+(7001, 5001, '2023-06-01', 73650, 'Success', 'TXN1001'),
+(7002, 5002, '2023-06-02', 1977.20, 'Success', 'TXN1002'),
+(7003, 5003, '2023-06-03', 41844, 'Success', 'TXN1003'),
+(7004, 5004, '2023-06-05', 24970, 'Success', 'TXN1004'),
+(7005, 5005, '2023-06-06', 28000, 'Refunded', 'TXN1005'),
+(7006, 5006, '2023-06-07', 4995, 'Success', 'TXN1006'),
+(7007, 5007, '2023-06-08', 5398.10, 'Success', 'TXN1007'),
+(7008, 5008, '2023-06-10', 4400, 'Success', 'TXN1008'),
+(7009, 5009, '2023-06-12', 35590, 'Success', 'TXN1009'),
+(7010, 5010, '2023-06-13', 1245, 'Pending', 'TXN1010'),
+(7011, 5011, '2023-06-15', 8398.20, 'Success', 'TXN1011'),
+(7012, 5012, '2023-06-16', 2793, 'Success', 'TXN1012'),
+(7013, 5013, '2023-06-18', 6120, 'Failed', 'TXN1013'),
+(7014, 5014, '2023-06-20', 71800, 'Success', 'TXN1014'),
+(7015, 5015, '2023-06-21', 4497, 'Success', 'TXN1015'),
+(7016, 5016, '2023-06-22', 17550, 'Success', 'TXN1016'),
+(7017, 5017, '2023-06-24', 42000, 'Pending', 'TXN1017'),
+(7018, 5018, '2023-06-25', 4038.10, 'Success', 'TXN1018'),
+(7019, 5019, '2023-07-01', 2397, 'Success', 'TXN1019'),
+(7020, 5020, '2023-07-03', 8560, 'Success', 'TXN1020'),
+(7021, 5021, '2023-07-04', 75000, 'Pending', 'TXN1021'),
+(7022, 5022, '2023-07-05', 9349.05, 'Success', 'TXN1022'),
+(7023, 5023, '2023-07-06', 34260, 'Success', 'TXN1023'),
+(7024, 5024, '2023-07-07', 11520, 'Refunded', 'TXN1024'),
+(7025, 5025, '2023-07-08', 7299, 'Success', 'TXN1025');
+
+-- =========================================================
+-- 10. RETURNS
+-- =========================================================
+CREATE TABLE returns (
+    return_id INT PRIMARY KEY,
+    order_item_id INT,
+    return_date DATE,
+    return_reason VARCHAR(100),
+    refund_amount DECIMAL(10,2),
+    FOREIGN KEY (order_item_id) REFERENCES order_items(order_item_id)
+);
+
+INSERT INTO returns (return_id, order_item_id, return_date, return_reason, refund_amount) VALUES
+(8001, 6003, '2023-06-10', 'Damaged product', 1078.20),
+(8002, 6017, '2023-06-20', 'Changed mind', 10450.00),
+(8003, 6023, '2023-06-25', 'Wrong item received', 6120.00),
+(8004, 6035, '2023-07-10', 'Defective item', 5760.00),
+(8005, 6042, '2023-07-15', 'Late delivery', 11520.00);
+
+-- =========================================================
+-- 11. PROJECTS
+-- =========================================================
+CREATE TABLE projects (
+    project_id INT PRIMARY KEY,
+    project_name VARCHAR(100) NOT NULL,
+    department_id INT,
+    start_date DATE,
+    end_date DATE NULL,
+    budget DECIMAL(12,2),
+    project_status VARCHAR(20),
+    FOREIGN KEY (department_id) REFERENCES departments(department_id)
+);
+
+INSERT INTO projects (project_id, project_name, department_id, start_date, end_date, budget, project_status) VALUES
+(901, 'CRM Upgrade', 1, '2023-01-01', NULL, 500000, 'Active'),
+(902, 'Hiring Drive Q1', 2, '2023-02-01', '2023-04-30', 150000, 'Completed'),
+(903, 'Cost Optimization', 3, '2023-03-01', NULL, 300000, 'Active'),
+(904, 'Data Lake Migration', 4, '2023-01-15', NULL, 900000, 'Active'),
+(905, 'Warehouse Efficiency', 5, '2023-02-10', '2023-06-30', 250000, 'Completed'),
+(906, 'Brand Awareness Campaign', 6, '2023-03-05', NULL, 400000, 'Active');
+
+-- =========================================================
+-- 12. EMPLOYEE_PROJECTS
+-- =========================================================
+CREATE TABLE employee_projects (
+    emp_project_id INT PRIMARY KEY,
+    employee_id INT,
+    project_id INT,
+    assigned_date DATE,
+    hours_allocated INT,
+    role_in_project VARCHAR(50),
+    FOREIGN KEY (employee_id) REFERENCES employees(employee_id),
+    FOREIGN KEY (project_id) REFERENCES projects(project_id)
+);
+
+INSERT INTO employee_projects (emp_project_id, employee_id, project_id, assigned_date, hours_allocated, role_in_project) VALUES
+(10001, 101, 901, '2023-01-05', 120, 'Lead'),
+(10002, 107, 901, '2023-01-08', 90, 'Member'),
+(10003, 108, 901, '2023-01-10', 80, 'Member'),
+(10004, 102, 902, '2023-02-03', 100, 'Lead'),
+(10005, 110, 902, '2023-02-07', 70, 'Member'),
+(10006, 111, 902, '2023-02-09', 65, 'Member'),
+(10007, 103, 903, '2023-03-03', 110, 'Lead'),
+(10008, 112, 903, '2023-03-07', 85, 'Member'),
+(10009, 113, 903, '2023-03-09', 75, 'Member'),
+(10010, 104, 904, '2023-01-20', 150, 'Lead'),
+(10011, 114, 904, '2023-01-25', 130, 'Engineer'),
+(10012, 115, 904, '2023-02-01', 120, 'Engineer'),
+(10013, 116, 904, '2023-02-05', 100, 'QA'),
+(10014, 105, 905, '2023-02-15', 100, 'Lead'),
+(10015, 117, 905, '2023-02-20', 80, 'Analyst'),
+(10016, 118, 905, '2023-02-22', 70, 'Coordinator'),
+(10017, 106, 906, '2023-03-10', 110, 'Lead'),
+(10018, 119, 906, '2023-03-12', 85, 'Executive'),
+(10019, 120, 906, '2023-03-15', 75, 'Content');
+
+-- =========================================================
+-- QUICK CHECKS
+-- =========================================================
+-- SELECT * FROM departments;
+-- SELECT * FROM employees;
+-- SELECT * FROM customers;
+-- SELECT * FROM categories;
+-- SELECT * FROM suppliers;
+-- SELECT * FROM products;
+-- SELECT * FROM orders;
+-- SELECT * FROM order_items;
+-- SELECT * FROM payments;
+-- SELECT * FROM returns;
+-- SELECT * FROM projects;
+-- SELECT * FROM employee_projects;
