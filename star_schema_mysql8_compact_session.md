@@ -603,6 +603,20 @@ ORDER BY revenue DESC;
 
 These reports use the same fact table. Only the dimension changes according to the business question.
 
+### Quick comparison — Operational vs Star Schema
+
+The table below compares the **same three reports**, using the queries from our e-commerce model.
+
+| Business question | Operational tables used | Tables / JOINs | Star Schema tables used | Tables / JOINs |
+|---|---|---|---|---|
+| Monthly revenue | Orders + OrderItems | 2 / 1 | FactSales + DimDate | 2 / 1 |
+| Revenue by product category | Orders + OrderItems + Products | 3 / 2 | FactSales + DimProduct | 2 / 1 |
+| Revenue by current customer city | Orders + OrderItems + Customers | 3 / 2 | FactSales + DimCustomer | 2 / 1 |
+
+**What changed?** `FactSales` already stores confirmed sales lines and their calculated amounts. The report joins only the dimension needed for that question.
+
+**Remember:** Fewer JOINs can make reporting queries easier to write and maintain, but do not automatically mean faster performance. Data size, indexes, database engine, and query plans also matter.
+
 ---
 
 ## Exercise 7 — How does SCD Type 2 change historical reporting?
